@@ -8,28 +8,32 @@ generator client {
 }
 
 model User {
-  id             String         @id @default(cuid())
-  email          String         @unique
-  passwordHash   String
+  id             String   @id @default(cuid())
+  email          String   @unique
+  passwordHash   String?  @default("")   // 允許 null or 空字串
   displayName    String
-  createdAt      DateTime       @default(now())
-  updatedAt      DateTime       @updatedAt
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
+
+  emailVerifiedAt          DateTime?
+  verificationToken        String?   @unique
+  verificationTokenExpires DateTime?
+  resetToken               String?   @unique
+  resetTokenExpires        DateTime?
+
+  isOnboarded Boolean @default(false)
+  onboardingCompleted Boolean @default(false)   
 
   // 配對
   likesGiven     Match[]        @relation("Liker")
   likesReceived  Match[]        @relation("Liked")
 
-  // 活動：我報名過的
   joinedActivities ActivityJoin[]
-
-  // 🆕 活動：我自己建立的（這一行就是剛剛缺的那個）
   activitiesCreated Activity[]  @relation("CreatedActivities")
 
-  // 聊天
   sentMessages     Message[]    @relation("SentMessages")
   receivedMessages Message[]    @relation("ReceivedMessages")
 
-  // 個人資料
   gender       String?
   ageGroup     String?
   city         String?
@@ -38,6 +42,7 @@ model User {
   avatarUrl    String?
   galleryUrls  String[] @default([])
 }
+
 
 model Activity {
   id          String   @id @default(cuid())

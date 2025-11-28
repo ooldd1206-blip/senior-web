@@ -1,9 +1,20 @@
 /* eslint-disable @typescript-eslint/no-unused-vars */
 // app/api/auth/route.ts
-import { prisma } from "@/lib/prisma"; // ✅ 用單例
+export const runtime = "nodejs";
+
+
+import { prisma } from "@/lib/prisma";
 import bcrypt from "bcryptjs";
 import { NextResponse } from "next/server";
-import { setSessionCookie } from "@/lib/cookies"; // ✅ 設定 HttpOnly Cookie
+import { sendMail } from "@/lib/mail";
+import { setSessionCookie } from "@/lib/cookies";
+import crypto from "crypto";
+
+const APP_URL = process.env.APP_URL || "http://localhost:3000";
+
+function generateToken() {
+  return crypto.randomBytes(32).toString("hex");
+}
 
 export async function POST(req: Request) {
   const { action, email, password, displayName } = await req.json();
@@ -12,34 +23,54 @@ export async function POST(req: Request) {
     return NextResponse.json({ error: "缺少必要欄位" }, { status: 400 });
   }
 
+  // 密碼規則：至少 8 碼、同時包含英文與數字
+  const passwordRegex = /^(?=.*[A-Za-z])(?=.*\d).{8,}$/;
+
   // 🔐 註冊
   if (action === "register") {
+    if (!passwordRegex.test(password)) {
+      return NextResponse.json(
+        { error: "密碼至少 8 碼，且需包含英文字母與數字" },
+        { status: 400 }
+      );
+    }
+
     const existing = await prisma.user.findUnique({ where: { email } });
-    if (existing)
+    if (existing) {
       return NextResponse.json({ error: "信箱已註冊" }, { status: 400 });
+    }
 
     const passwordHash = await bcrypt.hash(password, 10);
-    const user = await prisma.user.create({
+    const token = generateToken();
+    const expires = new Date(Date.now() + 24 * 60 * 60 * 1000);
+
+    await prisma.user.create({
       data: {
         email,
         passwordHash,
         displayName: displayName || "使用者",
+        emailVerifiedAt: null,
+        verificationToken: token,
+        verificationTokenExpires: expires,
       },
-      select: { id: true, email: true, displayName: true },
     });
 
-    // 設定登入狀態
-    await setSessionCookie({
-      sub: user.id,
-      email: user.email,
-      displayName: user.displayName,
-    });
+    const verifyUrl = `${APP_URL}/api/auth/verify-email?token=${token}`;
 
-    // ✅ 多回傳 justRegistered: true，前端好導去 /onboarding
+    await sendMail(
+      email,
+      "樂齡交友 – 請驗證您的 Email",
+      `
+        <p>${displayName || "使用者"} 您好，</p>
+        <p>請點擊以下連結完成您的信箱驗證：</p>
+        <p><a href="${verifyUrl}">${verifyUrl}</a></p>
+        <p>若您未註冊此帳號，請忽略此信件。</p>
+      `
+    );
+
     return NextResponse.json({
-      message: "註冊成功",
-      user,
-      justRegistered: true,
+      message: "註冊成功！請前往信箱完成驗證。",
+      emailSent: true,
     });
   }
 
@@ -47,19 +78,17 @@ export async function POST(req: Request) {
   if (action === "login") {
     const user = await prisma.user.findUnique({
       where: { email },
-      select: {
-        id: true,
-        email: true,
-        displayName: true,
-        passwordHash: true,
-      },
     });
-    if (!user)
-      return NextResponse.json({ error: "帳號不存在" }, { status: 401 });
+
+    if (!user) return NextResponse.json({ error: "帳號不存在" }, { status: 401 });
+    if (!user.emailVerifiedAt)
+      return NextResponse.json(
+        { error: "請先到 Email 完成驗證" },
+        { status: 403 }
+      );
 
     const ok = await bcrypt.compare(password, user.passwordHash);
-    if (!ok)
-      return NextResponse.json({ error: "密碼錯誤" }, { status: 401 });
+    if (!ok) return NextResponse.json({ error: "密碼錯誤" }, { status: 401 });
 
     await setSessionCookie({
       sub: user.id,
@@ -67,16 +96,15 @@ export async function POST(req: Request) {
       displayName: user.displayName,
     });
 
-    // 回傳時不要帶密碼
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    const { passwordHash, ...safeUser } = user as any;
-
     return NextResponse.json({
       message: "登入成功",
-      user: safeUser,
-      justRegistered: false,
+      user: {
+        id: user.id,
+        email: user.email,
+        displayName: user.displayName,
+      },
     });
   }
 
-  return NextResponse.json({ error: "未知的 action" }, { status: 400 });
+  return NextResponse.json({ error: "未知 action" }, { status: 400 });
 }

@@ -1,65 +1,71 @@
 "use client";
-import Link from "next/link";
-import { useEffect, useState } from "react";
+
+import { useState } from "react";
+import Image from "next/image";
 
 export default function Home() {
-  const [name, setName] = useState<string | null>(null);
-
-  useEffect(() => {
-    fetch("/api/session")
-      .then((r) => r.json())
-      .then((d) => {
-        setName(d.user?.displayName ?? null);
-      });
-  }, []);
-
-  async function logout() {
-    await fetch("/api/logout", { method: "POST" });
-    setName(null);
-  }
+  const [showLogin, setShowLogin] = useState(false);
 
   return (
-    <main className="min-h-screen bg-amber-50 flex items-center justify-center p-6">
-      <div className="w-full max-w-2xl text-center">
-        <h1 className="text-4xl md:text-5xl font-extrabold text-neutral-900 mb-2">
-          樂齡交友平台
-        </h1>
-        <p className="text-2xl text-neutral-800 mb-6">
-          {name ? `歡迎，${name}！` : "字體大、按鈕大、操作簡單"}
-        </p>
-        <div className="space-y-4">
-          <Link
-            href="/discovery"
-            className="block w-full rounded-2xl bg-pink-300 hover:bg-pink-400 px-6 py-6 text-2xl font-semibold text-neutral-900 shadow-md"
-          >
-            ❤️ 一對一配對
-          </Link>
-          <Link
-            href="/activities"
-            className="block w-full rounded-2xl bg-green-300 hover:bg-green-400 px-6 py-6 text-2xl font-semibold text-neutral-900 shadow-md"
-          >
-            👥 活動交友
-          </Link>
-          {name ? (
+    <main className="bg-grid">
+
+      {/* ===========================
+            首頁便利貼
+      =========================== */}
+      <div className="memo-wrap">
+        <Image src="/memo.png" width={900} height={900} alt="memo" className="memo-img"/>
+
+        <div className="memo-content">
+          <Image src="/logo.png" width={160} height={160} alt="logo" className="memo-logo"/>
+
+          <h1 className="memo-title">
+            <span className="logo-text-pink">老友</span>
+            <span className="logo-text-blue">友老</span>
+          </h1>
+
+          <div className="memo-buttons">
             <button
-              onClick={logout}
-              className="block w-full rounded-2xl bg-gray-300 hover:bg-gray-400 px-6 py-6 text-2xl font-semibold text-neutral-900 shadow-md"
+              type="button"
+              className="home-btn home-btn-blue"
+              onClick={() => setShowLogin(true)}
             >
-              🚪 登出
+              登入 / 註冊
             </button>
-          ) : (
-            <Link
-              href="/auth"
-              className="block w-full rounded-2xl bg-blue-300 hover:bg-blue-400 px-6 py-6 text-2xl font-semibold text-neutral-900 shadow-md"
-            >
-              🔐 登入 / 註冊
-            </Link>
-          )}
+          </div>
         </div>
-        <p className="mt-8 text-xl text-neutral-700">
-          提示：每個按鈕都可用鍵盤 Tab 選取，亦支援螢幕報讀。
-        </p>
       </div>
+
+      {/* ===========================
+            Google 登入彈跳便利貼
+      =========================== */}
+      {showLogin && (
+        <div className="login-overlay">
+          <div className="login-memo-wrap">
+
+            <Image src="/memo.png" width={900} height={900} alt="memo" className="login-memo-img"/>
+
+            <div className="login-memo-content">
+
+              <h1 className="auth-title">登入 / 註冊</h1>
+
+              <button
+                className="google-register-btn"
+                onClick={() => window.location.href = "/api/auth/google"}
+              >
+                <Image src="/google-logo.png" width={36} height={36} alt="Google icon"/>
+                <span>使用 Google 登入</span>
+              </button>
+
+              <button className="home-back-btn" onClick={() => setShowLogin(false)}>
+                <Image src="/black-arrow.png" width={130} height={130} alt="back" className="home-back-arrow"/>
+                <div className="home-back-label">回首頁</div>
+              </button>
+
+            </div>
+          </div>
+        </div>
+      )}
+
     </main>
   );
 }

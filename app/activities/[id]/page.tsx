@@ -164,31 +164,20 @@ export default function ActivityDetailPage() {
           )}
 
           {/* 報名後才能聯絡主辦人（用現有聊天室系統） */}
-          <button
-  type="button"
-  disabled={!a.joined}
-  onClick={() => {
-    const from =
-      a.category === "找牌咖"
-        ? "card"
-        : a.category === "旅遊/玩伴"
-        ? "trip"
-        : undefined;
-
-    const url = from
-      ? `/chat/${a.creatorId}?from=${from}`
-      : `/chat/${a.creatorId}`;
-
-    router.push(url);
-  }}
-  className={`text-xl rounded-2xl px-5 py-3 border ${
-    a.joined
-      ? "bg-blue-300 hover:bg-blue-400 border-blue-500 text-black"
-      : "bg-gray-200 text-gray-500 border-gray-300 cursor-not-allowed"
-  }`}
->
-  📩 聯絡主辦人
-</button>
+        <button
+          type="button"
+          disabled={!a.joined}
+          onClick={() => {
+            router.push(`/chat/${a.creatorId}?from=activity&activityId=${a.id}`);
+          }}
+          className={`text-xl rounded-2xl px-5 py-3 border ${
+            a.joined
+              ? "bg-blue-300 hover:bg-blue-400 border-blue-500 text-black"
+              : "bg-gray-200 text-gray-500 border-gray-300 cursor-not-allowed"
+          }`}
+        >
+          📩 聯絡主辦人
+        </button>
 
         </div>
       </div>

@@ -12,38 +12,60 @@ type ChatPreview = {
   lastMessage?: string;
   lastTime?: string;
   unreadCount?: number;
-
-  // 來源：交友配對 / 活動牌咖 / 活動旅伴
   source?: "MATCH" | "ACTIVITY_CARD" | "ACTIVITY_TRIP" | null;
-  tagText?: string; // 名字後面顯示用
+  tagText?: string;
 };
 
 let socket: Socket | null = null;
+
+// ⭐ 時間格式化
+function formatTime(ts?: string) {
+  if (!ts) return "";
+  const d = new Date(ts);
+  const now = new Date();
+
+  const isToday =
+    d.getFullYear() === now.getFullYear() &&
+    d.getMonth() === now.getMonth() &&
+    d.getDate() === now.getDate();
+
+  const y = new Date();
+  y.setDate(now.getDate() - 1);
+
+  const isYesterday =
+    d.getFullYear() === y.getFullYear() &&
+    d.getMonth() === y.getMonth() &&
+    d.getDate() === y.getDate();
+
+  if (isToday) {
+    return d.toLocaleTimeString("zh-TW", { hour: "2-digit", minute: "2-digit" });
+  }
+
+  if (isYesterday) return "昨天";
+
+  return `${d.getMonth() + 1}/${d.getDate()}`;
+}
 
 export default function ChatListPage() {
   const [me, setMe] = useState<string>("");
   const [chats, setChats] = useState<ChatPreview[]>([]);
   const [msg, setMsg] = useState("");
+  const [currentTab, setCurrentTab] = useState<"MATCH" | "ACTIVITY">("MATCH");
 
-  // 先抓登入的使用者
   useEffect(() => {
     fetch("/api/session")
       .then((r) => r.json())
       .then((d) => {
-        if (d?.user?.id) {
-          setMe(d.user.id);
-        }
+        if (d?.user?.id) setMe(d.user.id);
       });
   }, []);
 
-  // 將來源 enum 轉成中文標籤
   function sourceToTag(source?: string | null): string {
     if (source === "ACTIVITY_CARD") return "牌咖";
     if (source === "ACTIVITY_TRIP") return "玩伴旅伴";
-    return "交友配對"; // 預設
+    return "交友配對";
   }
 
-  // 載入「所有聊過天的對象」
   async function loadChats() {
     try {
       const res = await fetch("/api/chats");
@@ -82,27 +104,21 @@ export default function ChatListPage() {
     }
   }
 
-  // 第一次進頁面時載入聊天清單
   useEffect(() => {
     loadChats();
   }, []);
 
-  // 即時更新
   useEffect(() => {
     if (!me) return;
-    if (!socket) {
-      socket = io("http://localhost:4000");
-    }
+
+    if (!socket) socket = io("http://localhost:4000");
 
     socket.emit("register-user", { userId: me });
 
-    socket.on("notify-message", (payload: any) => {
-      const { from, content, createdAt } = payload;
-
+    socket.on("notify-message", ({ from, content, createdAt }) => {
       setChats((prev) => {
         const exist = prev.find((c) => c.id === from);
 
-        // ✅ 已在列表 → 更新最後訊息 / 時間 / 未讀數
         if (exist) {
           const updated = prev
             .map((c) =>
@@ -115,17 +131,15 @@ export default function ChatListPage() {
                   }
                 : c
             )
-            .sort((a, b) => {
-              const ta = a.lastTime ? new Date(a.lastTime).getTime() : 0;
-              const tb = b.lastTime ? new Date(b.lastTime).getTime() : 0;
-              return tb - ta;
-            });
+            .sort(
+              (a, b) =>
+                new Date(b.lastTime || 0).getTime() -
+                new Date(a.lastTime || 0).getTime()
+            );
 
           return updated;
         }
 
-        // ❗ 不在列表（例如：主辦人第一次收到報名者訊息）
-        // 直接重載一次聊天清單，讓新對象出現在列表中
         loadChats();
         return prev;
       });
@@ -136,70 +150,120 @@ export default function ChatListPage() {
     };
   }, [me]);
 
-  return (
-    <main className="min-h-screen bg-amber-50 p-6 flex flex-col items-center text-neutral-900">
-      <h1 className="text-3xl font-bold mb-6 text-neutral-900">💬 聊天室</h1>
+  const filteredChats = chats.filter((c) => {
+    if (currentTab === "MATCH") return c.source === "MATCH";
+    return c.source === "ACTIVITY_CARD" || c.source === "ACTIVITY_TRIP";
+  });
 
-      {msg && <p className="text-red-600 mb-4">{msg}</p>}
+return (
+  <main className="pt-[65px] bg-inherit flex justify-center">
 
-      <div className="w-full max-w-md space-y-2">
-        {chats.map((c) => (
+    {/* ⭐ 跟 NavBar 外框一致的容器 */}
+    <div className="w-full max-w-[1100px] mx-auto px-0">
+
+      {/* —— Tabs（靠近 NavBar，多縮一點距離） —— */}
+      <div className="flex items-center gap-14 mt-2 mb-8 px-6">
+
+        <button
+          onClick={() => setCurrentTab("MATCH")}
+          className={`
+            text-[34px] font-semibold px-12 py-4 rounded-[40px] transition-all
+            ${currentTab === "MATCH"
+              ? "bg-[#dedede] text-black shadow"
+              : "text-gray-600"
+            }
+          `}
+          style={{ border: "none" }}
+        >
+          配對
+        </button>
+
+        <button
+          onClick={() => setCurrentTab("ACTIVITY")}
+          className={`
+            text-[34px] font-semibold px-12 py-4 rounded-[40px] transition-all
+            ${currentTab === "ACTIVITY"
+              ? "bg-[#dedede] text-black shadow"
+              : "text-gray-600"
+            }
+          `}
+          style={{ border: "none" }}
+        >
+          活動
+        </button>
+
+      </div>
+
+      {/* —— 底線 —— */}
+      <div className="w-full h-[2px] bg-[#6a6a6a] mb-6" />
+
+      {/* —— 聊天清單 —— */}
+      <div className="w-full px-6">
+
+        {/* ⭐⭐ 沒有任何聊天室 → 顯示提示 ⭐⭐ */}
+        {filteredChats.length === 0 && (
+          <div className="text-center text-[22px] text-gray-500 py-16">
+            {currentTab === "MATCH"
+              ? "目前沒有配對對象"
+              : "目前沒有活動聯絡人"}
+          </div>
+        )}
+
+        {/* ⭐ 有聊天室才顯示列表 ⭐ */}
+        {filteredChats.map((c) => (
           <Link
             key={c.id}
             href={`/chat/${c.id}`}
-            className="flex items-center gap-4 bg-white hover:bg-neutral-100 rounded-2xl shadow p-4 transition relative text-neutral-900"
+            className="flex items-center justify-between py-8 border-b border-[#c7c7c7] no-underline"
           >
-            {/* 頭貼 */}
-            {c.avatarUrl ? (
-              <img
-                src={c.avatarUrl}
-                alt={c.displayName}
-                className="w-12 h-12 rounded-full object-cover border"
-              />
-            ) : (
-              <div className="w-12 h-12 bg-gray-300 rounded-full flex items-center justify-center text-xl font-semibold text-neutral-900">
-                {c.displayName.charAt(0)}
-              </div>
-            )}
 
-            <div className="flex-1 overflow-hidden">
-              <p className="text-xl font-semibold truncate text-neutral-900">
-                {c.displayName}
-                {/* 名字後面的來源標籤： (牌咖)(玩伴旅伴)(交友配對) */}
-                {c.tagText && (
-                  <span className="ml-2 text-sm text-neutral-600">
-                    （來自{c.tagText}）
-                  </span>
-                )}
-              </p>
-              <p className="truncate text-neutral-800">{c.lastMessage}</p>
-            </div>
-
-            <div className="flex flex-col items-end">
-              <span className="text-sm text-neutral-700">
-                {c.lastTime
-                  ? new Date(c.lastTime).toLocaleTimeString("zh-TW", {
-                      hour: "2-digit",
-                      minute: "2-digit",
-                    })
-                  : ""}
-              </span>
-              {(c.unreadCount ?? 0) > 0 && (
-                <span
-                  className="w-3 h-3 bg-blue-500 rounded-full mt-1"
-                  aria-label="有未讀訊息"
-                ></span>
+            {/* 左側：頭貼 + 名字訊息 */}
+            <div className="flex items-center gap-10">
+              {c.avatarUrl ? (
+                <img
+                  src={c.avatarUrl}
+                  className="w-[80px] h-[80px] rounded-full object-cover"
+                />
+              ) : (
+                <div className="w-[80px] h-[80px] rounded-full bg-[#c8c8c8] flex items-center justify-center">
+                  <div className="w-[60px] h-[60px] rounded-full bg-[#b3b3b3]" />
+                </div>
               )}
+
+              <div>
+                <p className="text-[26px] font-semibold text-black">{c.displayName}</p>
+                <p className="text-[20px] text-[#8e8e8e] mt-3 truncate">
+                  {c.lastMessage}
+                </p>
+              </div>
             </div>
+
+            {/* 右側：時間 + 未讀 */}
+            <div className="flex flex-col items-end mr-2">
+              <span className="text-[16px] text-gray-600 mb-2">
+                {formatTime(c.lastTime)}
+              </span>
+
+              {(() => {
+                const count = c.unreadCount ?? 0;
+                return count > 0 ? (
+                  <span className="min-w-[28px] px-[6px] py-[3px] bg-red-500 text-white text-xs rounded-full text-center">
+                    {count > 9 ? "9+" : count}
+                  </span>
+                ) : null;
+              })()}
+            </div>
+
           </Link>
         ))}
 
-        {chats.length === 0 && (
-          <p className="text-lg text-neutral-700 text-center mt-10">
-            目前沒有可聊天的對象
-          </p>
-        )}
       </div>
-    </main>
-  );
+
+    </div>
+
+  </main>
+);
+
+
+
 }

@@ -1,42 +1,2702 @@
-@import "tailwindcss";
+/* ======== 全域設定 ======== */
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
 
+
+/* ===========================
+   老友友老 Tokens
+=========================== */
 :root {
-  --background: #ffffff;
-  --foreground: #171717;
+  --color-pink: #D48F8F;
+  --color-blue: #3A4E7A;
+  --fs-title: clamp(26px, 4vw, 40px);
+  --fs-button: clamp(15px, 2vw, 19px);
+  --shadow-paper: 2px 4px 6px rgba(0,0,0,0.18);
 }
 
-@theme inline {
-  --color-background: var(--background);
-  --color-foreground: var(--foreground);
-  --font-sans: var(--font-geist-sans);
-  --font-mono: var(--font-geist-mono);
+/* ===========================
+   首頁背景（格子紙）
+=========================== */
+.bg-grid {
+  position: relative;
+  width: 100vw;
+  height: 100vh;
+
+  background-image: url("/background.jpg");
+  background-size: cover;
+  background-position: top center;
+
+  display: flex;
+  justify-content: center;
+  align-items: center;
+
+  overflow: hidden;
 }
 
-@media (prefers-color-scheme: dark) {
-  :root {
-    --background: #0a0a0a;
-    --foreground: #ededed;
+/* ===========================
+   首頁便利貼貼上
+=========================== */
+.memo-wrap {
+  position: relative;
+  width: clamp(440px, 88vw, 1120px);
+  animation: memoPopIn 1.25s cubic-bezier(.25,.85,.35,1) forwards;
+  transform-origin: center;
+}
+
+@keyframes memoPopIn {
+  0% {
+    transform: scale(1.65) translateY(-40px) rotate(-4deg);
+    opacity: 0;
+  }
+  50% {
+    transform: scale(1.05) translateY(8px) rotate(2deg);
+    opacity: 1;
+  }
+  75% {
+    transform: scale(0.98) translateY(4px) rotate(-1deg);
+  }
+  100% {
+    transform: scale(1) translateY(0) rotate(0deg);
   }
 }
 
-body {
-  background: var(--background);
-  color: var(--foreground);
-  font-family: Arial, Helvetica, sans-serif;
+.memo-img {
+  width: 100%;
+  height: auto;
+  display: block;
 }
 
-/* 讓 sr-only 的焦點還原在 TopNav 有用到 */
-.sr-only {
+/* ===========================
+   首頁便利貼內容
+=========================== */
+.memo-content {
   position: absolute;
-  width: 1px;
-  height: 1px;
-  padding: 0;
-  margin: -1px;
-  overflow: hidden;
-  clip: rect(0, 0, 0, 0);
-  white-space: nowrap;
-  border: 0;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -46%);
+  width: 90%;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  text-align: center;
+  row-gap: 0.18rem;
 }
 
-/* 提高預設文字行高，可讀性更好 */
-html { line-height: 1.6; }
+.memo-logo {
+  width: clamp(200px, 35vw, 320px);
+}
+
+.memo-title {
+  margin-top: 0.05rem;
+  font-size: clamp(36px, 5vw, 60px);
+  font-weight: 700;
+  letter-spacing: 0.14em;
+  font-family: "Noto Sans TC", "PingFang TC", "Microsoft JhengHei", sans-serif;
+}
+
+.logo-text-pink { color: var(--color-pink); }
+.logo-text-blue { color: var(--color-blue); }
+
+/* ===========================
+   首頁按鈕
+=========================== */
+.memo-buttons {
+  margin-top: 0.3rem;
+  display: flex;
+  gap: 0.5rem;
+}
+
+.home-btn {
+  padding: 0.62rem 2.1rem;
+  font-size: clamp(19px, 2.6vw, 26px);
+  font-weight: 700;
+  font-family: "Noto Sans TC", "PingFang TC", "Microsoft JhengHei", sans-serif;
+  border-radius: 9999px;
+  color: #fff;
+  text-decoration: none;
+  box-shadow: var(--shadow-paper);
+  transition: transform .15s ease, box-shadow .15s ease;
+}
+
+.home-btn-blue { background-color: #4CAF50; }
+.home-btn-pink { background-color: #9E9E9E; }
+
+.home-btn:hover {
+  transform: translateY(-2px);
+  box-shadow: 3px 6px 10px rgba(0,0,0,0.22);
+}
+
+/* ===========================
+   登入 Overlay & 便利貼
+=========================== */
+.login-overlay {
+  position: fixed;
+  inset: 0;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  pointer-events: none;
+}
+
+.login-memo-wrap {
+  position: relative;
+  width: clamp(440px, 88vw, 1120px);
+  transform: translate(2.8rem, 1.5rem) rotate(-1deg);
+  animation: loginMemoAttach 0.9s cubic-bezier(.25,.85,.30,1) forwards;
+  pointer-events: auto;
+}
+
+@keyframes loginMemoAttach {
+  0% {
+    transform: translate(2.8rem, 1.5rem) scale(1.35) translateY(-70px) rotate(-4deg);
+    opacity: 0;
+    filter: blur(2px);
+  }
+  100% {
+    transform: translate(2.8rem, 1.5rem) scale(1) translateY(0) rotate(-1deg);
+    opacity: 1;
+    filter: blur(0);
+  }
+}
+
+.login-memo-img {
+  width: 100%;
+  height: auto;
+}
+
+.login-memo-content {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  width: 78%;
+  transform: translate(calc(-50% - 20px), calc(-46% - 60px));
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.9rem;
+}
+
+.auth-title {
+  font-size: clamp(28px, 3.6vw, 40px);
+  font-weight: 700;
+  margin-bottom: 0.4rem;
+}
+
+/* 登入帳密欄位 */
+.auth-field {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 1rem;
+  width: 100%;
+}
+
+.auth-label {
+  width: 3.8em;
+  text-align: right;
+  font-size: clamp(20px, 2.6vw, 26px);
+}
+
+.auth-input {
+  width: clamp(180px, 50vw, 380px);
+  padding: 0.5rem 1rem;
+  border-radius: 9999px;
+  border: none;
+  background: #ffffff;
+  box-shadow: 1px 2px 4px rgba(0,0,0,0.18);
+  font-size: inherit;
+}
+
+/* 登入功能按鈕 */
+.auth-buttons-row {
+  display: flex;
+  gap: 1rem;
+  margin-top: 0.4rem;
+}
+
+.auth-btn {
+  padding: 0.5rem 1.8rem;
+  border-radius: 9999px;
+  border: none;
+  font-weight: 700;
+  font-size: clamp(16px, 2.2vw, 20px);
+  box-shadow: var(--shadow-paper);
+  cursor: pointer;
+}
+
+.auth-btn-pink { background-color: #EBC4C4; color: #5f4a4a; }
+.auth-btn-green { background-color: #8CCF65; color: #234f20; }
+
+/* ===========================
+   回首頁按鈕
+=========================== */
+.home-back-btn {
+  position: absolute;
+  left: -2.2rem;
+  bottom: -3.5rem;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  background: none;
+  border: none;
+  cursor: pointer;
+  transform: rotate(-6deg);
+  z-index: 20;
+  pointer-events: auto;
+}
+
+.home-back-arrow {
+  width: 130px;
+  user-select: none;
+}
+
+.home-back-label {
+  margin-top: -1rem;
+  background: #9E9E9E;
+  color: white;
+  padding: 0.45rem 1.2rem;
+  border-radius: 12px;
+  font-size: 20px;
+  font-weight: 700;
+  box-shadow: 2px 4px 6px rgba(0,0,0,0.18);
+  transform: rotate(2deg);
+}
+
+/* ===========================
+   右下角：第一次使用？註冊入口
+=========================== */
+.first-register-btn {
+  position: absolute;
+  right: -2rem;
+  bottom: -3.5rem;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  background: none;
+  border: none;
+  cursor: pointer;
+  transform: rotate(6deg);
+  z-index: 20;
+}
+
+.first-register-arrow {
+  width: 130px;
+  transform: scaleX(-1);
+}
+
+/* ===========================
+   註冊便利貼內容
+=========================== */
+.register-memo-wrap {
+  position: relative;
+  width: clamp(440px, 88vw, 1120px);
+  transform: translate(2.8rem, 1.5rem) rotate(-1deg);
+  animation: loginMemoAttach 0.6s cubic-bezier(.25,.85,.30,1) forwards;
+  pointer-events: auto;
+}
+
+.register-content {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  width: 78%;
+  transform: translate(calc(-50% - 20px), calc(-46% - 60px));
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.9rem;
+}
+
+.register-title {
+  font-size: clamp(28px, 3.6vw, 40px);
+  font-weight: 700;
+  margin-bottom: 0.4rem;
+}
+
+/* ===========================
+   Google 註冊按鈕
+=========================== */
+.google-register-box {
+  width: 100%;
+  display: flex;
+  justify-content: center;
+}
+
+.google-register-btn {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  padding: 12px 26px;
+  background: #fff;
+  border-radius: 50px;
+  border: 1.5px solid #dcdcdc;
+  box-shadow: 2px 4px 6px rgba(0,0,0,0.12);
+  font-size: 20px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.15s ease;
+  pointer-events: auto !important;
+}
+
+.google-register-btn:hover {
+  background: #f7f7f7;
+  box-shadow: 3px 6px 10px rgba(0,0,0,0.18);
+}
+
+.google-register-icon {
+  width: 28px;
+  height: 28px;
+}
+
+.google-register-btn {
+  pointer-events: auto !important;
+}
+
+
+/* 返回登入（註冊頁右下角） */
+.register-buttons {
+  display: flex;
+  justify-content: center;
+  margin-top: 1rem;
+  gap: 1rem;
+}
+/* === 讓背景真正滿版，不留任何白邊 === */
+.onboard-bg {
+  position: fixed;      /* ⭐ 背景固定，覆蓋整個畫面 */
+  top: 0;
+  left: 0;
+
+  width: 100vw;
+  height: 100vh;
+
+  margin: 0;
+  padding: 0;
+
+  background-image: url("/onboarding-paper.jpg");
+  background-size: cover;       /* ⭐ 滿版 */
+  background-position: center;  /* 置中 */
+  background-repeat: no-repeat; /* 不重複 */
+  overflow: auto;               /* 內容可以捲動 */
+}
+
+/* 內容容器獨立處理 padding，不要寫在 onboard-bg */
+.onboard-content {
+  position: relative;
+  width: 100%;
+  max-width: 960px;
+  margin: 0 auto;
+  padding-top: 40px;
+}
+
+
+/* 白色紙張卡片（放表單） */
+.ob-card {
+  width: clamp(380px, 85vw, 720px);
+  background: rgba(255, 255, 255, 0.98);
+  padding: 28px;
+  border-radius: 12px;
+  box-shadow: 4px 6px 14px rgba(0,0,0,0.25);
+}
+
+/* ===========================
+   Onboarding 表單通用樣式
+=========================== */
+.ob-title {
+  font-size: 28px;
+  font-weight: 800;
+  text-align: center;
+  margin-bottom: 4px;
+}
+
+.ob-step {
+  text-align: center;
+  margin-bottom: 18px;
+  font-size: 18px;
+  color: #555;
+}
+
+.ob-box {
+  display: flex;
+  flex-direction: column;
+  gap: 18px;
+}
+
+/* Label */
+.ob-label {
+  display: block;
+  font-size: 18px;
+  font-weight: 600;
+  margin-bottom: 4px;
+}
+
+/* Input */
+.ob-input {
+  width: 100%;
+  padding: 10px 14px;
+  border-radius: 12px;
+  border: 1px solid #ccc;
+  font-size: 18px;
+}
+
+/* Textarea */
+.ob-textarea {
+  width: 100%;
+  min-height: 100px;
+  border-radius: 12px;
+  border: 1px solid #ccc;
+  padding: 12px;
+  font-size: 18px;
+}
+
+/* 性別 Row */
+.ob-row {
+  display: flex;
+  gap: 12px;
+}
+
+.ob-select {
+  flex: 1;
+  padding: 12px;
+  border-radius: 12px;
+  border: 1px solid #aaa;
+  background: #fff;
+  font-size: 18px;
+}
+
+.ob-active-m {
+  background: #cfe2ff;
+  border-color: #6ea8fe;
+}
+
+.ob-active-f {
+  background: #ffd7e2;
+  border-color: #ff91b3;
+}
+
+/* Grid 選項 */
+.ob-grid {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 8px;
+}
+
+.ob-tag {
+  border: 1px solid #aaa;
+  padding: 10px;
+  border-radius: 10px;
+  font-size: 16px;
+  background: #fff;
+}
+
+.ob-active-city {
+  background: #ffe5b3;
+  border-color: #ffbe55;
+}
+
+.ob-active-hobby {
+  background: #d8f7d2;
+  border-color: #75ca65;
+}
+
+/* 頭貼預覽 */
+.ob-avatar {
+  width: 90px;
+  height: 90px;
+  border-radius: 50%;
+  margin-top: 10px;
+  object-fit: cover;
+}
+
+/* 生活照預覽 */
+.ob-gallery {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.ob-gallery-img {
+  width: 70px;
+  height: 70px;
+  border-radius: 8px;
+  object-fit: cover;
+}
+
+/* 按鈕區 */
+.ob-btn-row {
+  display: flex;
+  justify-content: space-between;
+  margin-top: 6px;
+}
+
+.ob-btn-gray {
+  padding: 10px 20px;
+  background: #ddd;
+  border-radius: 12px;
+  font-size: 18px;
+}
+
+.ob-btn-next {
+  padding: 10px 20px;
+  background: #4aa3ff;
+  color: white;
+  border-radius: 12px;
+  font-size: 18px;
+}
+
+.ob-btn-finish {
+  padding: 10px 20px;
+  background: #53c26b;
+  color: white;
+  border-radius: 12px;
+  font-size: 18px;
+}
+
+.ob-disabled {
+  opacity: 0.5;
+  pointer-events: none;
+}
+
+.ob-msg {
+  margin-top: 8px;
+  text-align: center;
+  color: #555;
+}
+
+/* ========= 背景 ========= */
+.onboard-bg {
+  position: fixed;
+  inset: 0;
+  background-image: url("/onboarding-paper.jpg");
+  background-size: cover;
+  background-position: center;
+  display: flex;
+  justify-content: center;
+  overflow-y: auto;
+}
+
+/* ===========================
+   Onboarding：外層背景
+=========================== */
+.onboard-bg {
+  position: fixed;
+  inset: 0;
+  width: 100vw;
+  height: 100vh;
+  background-image: url("/onboarding-paper.jpg");
+  background-size: cover;
+  background-position: center;
+  background-repeat: no-repeat;
+  overflow-y: auto;
+}
+
+/* ===========================
+   主要容器
+=========================== */
+.onboard-content {
+  width: 100%;
+  max-width: 860px;
+  margin: 0 auto;
+  padding-top: 80px;        /* 上方間距 */
+  position: relative;
+}
+
+/* ===========================
+   標題（topic.png）
+=========================== */
+.paper-title-wrap {
+  display: flex;
+  justify-content: center;
+  margin-top: -120px;
+  margin-bottom: -470px;
+}
+
+.paper-title-img {
+  width: 900px;
+  height: auto;
+  display: block;
+}
+
+/* ===========================
+   步驟文字
+=========================== */
+.ob-step {
+  text-align: center;
+  font-size: 18px;
+  margin-bottom: -30px;
+  color: #555;
+  
+}
+
+/* ===========================
+   每一題（圖片 Label + Input）
+=========================== */
+.qa-row {
+  display: flex;
+  flex-direction: column;
+  position: relative;
+  margin-bottom: -20px;
+  margin-top: -45px;
+  gap: 6px;
+}
+
+/* 題目圖片 */
+.qa-label-img {
+  width: 340px;
+  height: auto;
+  margin-bottom: -80px;
+}
+
+/* 性別專用：增加間距 */
+.qa-row.gender-block {
+  margin-top: -40px;
+  margin-bottom: 40px !important;
+}
+
+.qa-row.gender-block .ob-row {
+  margin-top: 20px !important;
+}
+
+/* ===========================
+   基礎輸入框
+=========================== */
+.ob-input {
+  width: 100%;
+  padding: 18px 12px;
+  border: 1px solid #ccc;
+  border-radius: 12px;
+  font-size: 18px;
+  background: #fff;
+}
+
+/* 多行輸入框 */
+.ob-textarea {
+  width: 100%;
+  min-height: 120px;
+  padding: 14px;
+  border: 1px solid #ccc;
+  border-radius: 12px;
+  font-size: 18px;
+}
+
+/* ===========================
+   性別按鈕
+=========================== */
+.ob-row {
+  display: flex;
+  gap: 12px;
+}
+
+.ob-select {
+  flex: 1;
+  padding: 14px;
+  border-radius: 12px;
+  border: 1px solid #aaa;
+  background: #fff;
+  font-size: 18px;
+}
+
+.ob-active-m {
+  background: #cfe2ff;
+  border-color: #6ea8fe;
+}
+
+.ob-active-f {
+  background: #ffd7e2;
+  border-color: #ff91b3;
+}
+
+/* ===========================
+   城市 & 興趣 Grid
+=========================== */
+.ob-grid {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 6px;
+}
+
+.ob-tag {
+  border: 1px solid #aaa;
+  padding: 8px;
+  font-size: 15px;
+  background: #fff;
+  border-radius: 10px;
+}
+
+.ob-active-city {
+  background: #ffe5b3;
+  border-color: #ffbe55;
+}
+
+.ob-active-hobby {
+  background: #d8f7d2;
+  border-color: #75ca65;
+}
+
+/* ===========================
+   頭貼 & 生活照
+=========================== */
+.ob-avatar {
+  width: 90px;
+  height: 90px;
+  border-radius: 50%;
+  margin-top: 10px;
+  object-fit: cover;
+}
+
+.ob-gallery {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.ob-gallery-img {
+  width: 70px;
+  height: 70px;
+  border-radius: 8px;
+  object-fit: cover;
+}
+/* ===========================
+   🔥 通用：上下步驟整體排版（左右平行）
+=========================== */
+.nav-row {
+  display: flex;
+  justify-content: space-between;   /* ⭐ 左右兩邊貼齊 */
+  align-items: center;
+  width: 100%;
+  margin-top: 40px;
+  padding: 0 40px;                  /* ⭐ 左右內距讓畫面更好看 */
+}
+
+/* 整行：左右分佈 */
+.next-btn-row {
+  width: 100%;
+  display: flex;
+  justify-content: space-between;  /* ⭐ 左右兩側 */
+  align-items: center;
+  margin-top: 40px;
+}
+
+
+/* === 上一步（左邊） === */
+.prev-btn-wrap {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.prev-btn-arrow {
+  width: 120px;
+  transform: rotate(-5deg);
+  user-select: none;
+  pointer-events: none;
+}
+
+.prev-btn {
+  background: #4A4A4A;
+  color: #fff;
+  padding: 14px 36px;
+  font-size: 22px;
+  border-radius: 32px;
+  border: none;
+  font-weight: 700;
+  box-shadow: 2px 4px 8px rgba(0,0,0,0.2);
+  cursor: pointer;
+}
+
+
+/* === 下一步（右邊） === */
+.next-btn-wrap {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.next-btn {
+  background: #4A4A4A;
+  color: white;
+  padding: 14px 38px;
+  font-size: 22px;
+  border-radius: 32px;
+  border: none;
+  font-weight: 700;
+  box-shadow: 2px 4px 6px rgba(0,0,0,0.22);
+  cursor: pointer;
+}
+
+.next-btn-arrow {
+  width: 150px;
+  transform: rotate(3deg);
+  user-select: none;
+  pointer-events: none;
+}
+
+
+/* ===========================
+   訊息文字
+=========================== */
+.ob-msg {
+  margin-top: 12px;
+  text-align: center;
+  color: #555;
+}
+
+
+.qa-label-img {
+  pointer-events: none !important;
+}
+
+.qa-label-img {
+  width: 150px;
+  height: auto;
+  margin-bottom: -90px;
+}
+
+
+/* ===========================
+   🔧 Step 1 專用
+=========================== */
+
+/* Step1 整組往下推，不動 Step0 */
+.step1-container {
+  margin-top: 50px;            /* ⬅️ 你可調整，讓 Step1 不被 Step0 壓到 */
+  padding-bottom: -60px;
+}
+
+/* Step1 的每一題額外間距 */
+.step1-row {
+  margin-top: 20px !important;
+  margin-bottom: 10px !important;
+}
+
+/* Step1 的圖片距離輸入框 */
+.step1-row .qa-label-img {
+  margin-bottom: -20px !important;
+}
+
+/* City grid 彼此的距離 */
+.step1-container .ob-grid {
+  margin-top: 10px;
+  margin-bottom: 20px;
+}
+
+/* 年齡層下拉選單與圖片距離 */
+.step1-container select.ob-input {
+  margin-top: 12px;
+}
+
+
+/* ===========================
+   Step0 專用：恢復正常排版
+=========================== */
+
+/* Step0：圖片距離恢復 */
+.step0 .qa-row {
+  margin-top: 30px !important;
+  margin-bottom: 20px !important;
+  gap: 12px !important;
+}
+
+/* Step0：標籤圖片尺寸（name.png / gender.png） */
+.step0 .qa-label-img {
+  width: 200px !important;
+  margin-bottom: -10px !important;
+}
+
+/* Step0：性別按鈕與圖片距離 */
+.step0 .gender-block .ob-row {
+  margin-top: 10px !important;
+}
+
+/* Step0：讓整塊間距正常 */
+.step0 .ob-input,
+.step0 .ob-row {
+  margin-top: 0px !important;
+}
+
+/* ===========================
+   ⭐ Step2 專用排版
+=========================== */
+
+/* 避免被 step1 的設定擠壞 */
+.step2-row {
+  margin-top: 50px !important;
+  margin-bottom: 10px !important;
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+}
+
+/* Step2 的題目圖片：興趣 / 自介 */
+.step2-label {
+  width: 200px;  
+  height: auto;
+  margin-bottom: -20px;
+  pointer-events: none;  /* ⭐ 避免圖片擋住點擊 */
+}
+
+/* 興趣 grid 與自介 textarea 間距 */
+.step2-row .ob-grid,
+.step2-row .ob-textarea {
+  margin-top: 10px;
+  width: 100%;
+}
+
+/* ---------- Step 3 標題圖片尺寸（不動 0/1/2） ---------- */
+.step3 .qa-label-img {
+  width: 200px;       /* 依照你的圖原比例 */
+  margin-bottom: -40px;
+}
+
+/* Step3 每一段之間多留空 */
+.step3 .qa-row {
+  margin-bottom: 60px;
+}
+
+/* ============================================
+   ⭐ Step3 專用版面排版修復（不影響其他步驟）
+============================================ */
+
+/* Step3 整體排版 */
+.step3 {
+  margin-top: 40px;
+  display: flex;
+  flex-direction: column;
+  gap: 60px;          /* 每個題目分開 */
+  align-items: center;
+}
+
+/* 每題的外框（頭貼 / 生活照） */
+.step3 .qa-row {
+  width: 100%;
+  max-width: 700px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 14px;
+  position: relative;
+}
+
+/* Step3 標題圖片 */
+.step3 .qa-label-img {
+  width: 200px;        /* 比其他步驟更大一些 */
+  height: auto;
+  margin-bottom: -20px;
+}
+
+/* input 上傳框統一置中 */
+.step3 input[type="file"] {
+  font-size: 18px;
+  margin-top: 6px;
+}
+
+/* 頭貼預覽 */
+.step3 .ob-avatar {
+  width: 130px;
+  height: 130px;
+  margin-top: 12px;
+  border-radius: 50%;
+  object-fit: cover;
+}
+
+/* 生活照 gallery */
+.step3 .ob-gallery {
+  margin-top: 12px;
+  display: flex;
+  gap: 10px;
+  flex-wrap: wrap;
+  justify-content: center;
+}
+
+.step3 .ob-gallery-img {
+  width: 90px;
+  height: 90px;
+  border-radius: 10px;
+  object-fit: cover;
+}
+
+/* ===========================
+   Step 3 完成按鈕排版修正（不影響其他步驟）
+=========================== */
+
+.step3-next-wrap {
+  display: flex;  /* ⭐ 讓整組靠右 */
+  align-items: center;
+  gap: 5px;                   /* 按鈕與箭頭間距 */
+  margin-top: 0px;
+}
+
+.step3-btn {
+  background: #666;
+  color: #fff;
+  padding: 16px 40px;
+  border-radius: 32px;
+  font-size: 24px;
+  font-weight: 700;
+  border: none;
+  box-shadow: 2px 4px 8px rgba(0,0,0,0.25);
+  cursor: pointer;
+  margin-left: 450px;    
+}
+
+.step3-arrow {
+  width: 120px;                /* ⭐ 切合你的箭頭比例 */
+  transform: rotate(2deg);
+  user-select: none;
+}
+
+/* ===========================
+   NavBar（撕紙固定在 Nav 下層 + 完全對齊）
+=========================== */
+
+.top-nav-wrapper {
+  position: relative;
+  width: 100%;
+  z-index: 10;
+}
+
+/* ⭐ 撕紙背景跟 nav 高度自動同步 */
+.top-nav-bg {
+
+  background-color: white;
+
+}
+
+/* ⭐ NavBar 本體 */
+.top-nav-wrapper nav {
+  width: 100%;
+  max-width: 1100px;      
+  margin: 0 auto;         
+  padding: 24px 40px;      /* 調整後的高度 */
+  background: transparent !important;
+  box-shadow: none !important;
+  position: relative;
+  z-index: 2;             /* 讓文字永遠在撕紙上方 */
+}
+
+/* 標題樣式 */
+.top-nav-wrapper h1 {
+  letter-spacing: 0.05em;
+}
+
+/* 導覽連結間距 */
+.top-nav-wrapper nav > div {
+  gap: 1.75rem;
+}
+
+
+html, body {
+  margin: 0;
+  padding: 0;
+  width: 100%;
+  overflow-x: hidden; /* 這行可以避免出現水平捲軸 */
+}
+
+.home-container {
+  min-height: 100vh;
+  background-color: white;
+}
+
+
+
+/* LOGO 置中 */
+.home-logo-wrap {
+  display: flex;
+  justify-content: center;
+  margin-bottom: 40px;
+}
+
+.home-logo {
+  object-fit: contain;
+}
+
+/* 功能按鈕區（桌機四欄，手機兩欄） */
+.home-btn-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
+  gap: 40px;
+  width: 90%;
+  max-width: 1100px;
+  margin: 0 auto;
+}
+
+/* 單一按鈕 */
+.home-btn-item {
+  position: relative;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  cursor: pointer;
+  transition: transform 0.2s;
+}
+
+.home-btn-item:hover {
+  transform: scale(1.03);
+}
+
+/* 背後的便利貼圖 */
+.home-btn-bg {
+  width: 100%;
+  height: auto;
+  z-index: 1;
+  pointer-events: none;
+}
+
+/* 前方的功能文字圖（如 交友配對 / 活動 / 聊天室） */
+.home-btn-title {
+  position: absolute;
+  z-index: 2;
+  pointer-events: none;
+  top: 50%;
+  transform: translateY(-10%);
+  width: 40px;
+}
+/* ===========================
+   NavBar 外層：確保可顯示背景
+=========================== */
+/* NAVBAR 外框（固定高度） */
+.top-nav-wrapper {
+  position: relative;
+  width: 100%;
+  height: 140px;    /* ⭐ 固定 NavBar 高度，任意調整 */
+  flex-shrink: 0;   /* ⭐ 禁止被壓縮 */
+  z-index: 10;
+}
+
+/* NAVBAR 內層保持不變，只是固定在 wrapper 裡 */
+.top-nav-inner {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding-top: 10px; /* 原本可能較大，改小 */
+  padding-bottom: 0; /* 按鈕往上 */
+  margin-top: -10px; /* 如需更上可以調整 */
+}
+
+
+.top-nav-bg {
+  display: none;
+}
+
+
+/* ===========================
+   撕紙背景（滿版）
+=========================== */
+/*.top-nav-bg {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 120px;
+  background-image: url("/navbar.png");
+  background-size: cover;      
+  background-repeat: no-repeat;
+  background-position: top center;
+  z-index: 1;                 
+}   */
+
+/* ===========================
+   Nav 內容（固定寬度）
+=========================== */
+
+
+/* 讓 logo2 向左貼齊 */
+.nav-logo {
+  margin-left: 0 !important;   /* ⭐ 靠最左 */
+  padding-left: 0 !important;
+}
+
+.nav-logo {
+
+  position: absolute;
+  left: 0;           /* ⭐ 直接貼到螢幕最左 */
+  top: 50%;
+  transform: translateY(-50%);
+  width: 230px !important;
+  height: auto !important;
+  margin-left: 0 !important;
+  z-index: 20;
+}
+
+/* 統一 icon 大小 */
+.nav-icon {
+  width: 180px ;
+  height: auto !important;
+
+}
+
+/* icon 區 */
+.nav-links {
+  display: flex;
+  gap: 20px;
+  align-items: center;
+}
+
+
+.paper-bg {
+  background-image: url("/onboarding-paper.jpg");
+  background-size: cover;
+  background-repeat: repeat-y;
+  background-position: top center;
+  min-height: 100vh;
+}
+
+/* ============ HOME PAGE ============= */
+/* =======================
+   HOME PAGE 主要容器
+======================= */
+.home-container {
+  padding-top: 220px;   /* ⭐ 預留 NavBar 空間，不會被擠到 */
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  min-height: 100vh;
+}
+
+/* =======================
+   兩張便利貼外層（置中）
+======================= */
+.home-two-cards {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  gap: 50px;           /* ⭐ 左右間距 */
+  margin-top: 0px;
+}
+
+/* =======================
+   單一卡片（放大 1.2 倍）
+======================= */
+.home-card {
+  display: block;
+  transform: scale(1.85);       /* ⭐ 放大 20%（你要 2 倍就改 2） */
+  transition: transform 0.2s ease;
+}
+
+.home-card:hover {
+  transform: scale(1.28);
+}
+
+.home-card-bg {
+  width: auto;
+  height: auto;
+}
+
+/* 按鈕造型 */
+.home-button {
+    background: #555;
+  color: white;
+  padding: 15px 30px;
+  border-radius: 24px;
+  font-size: 20px;
+  font-weight: bold;
+  position: absolute;
+}
+ 
+
+/* 左邊：配對按鈕（往左＆往上調整） */
+.home-card:first-child .home-button {
+  position: absolute;
+  bottom: 70px;   /* ↑ 往上（原本約 60px → 120px） */
+  left: 45%;       /* ← 往左（原本約 50% → 28%） */
+  transform: translateX(-50%);
+}
+
+/* 右邊：加入按鈕（往右＆往上調整） */
+.home-card:last-child .home-button {
+  position: absolute;
+  bottom: 70px;   /* ↑ 同樣往上 */
+  left: 52%;       /* → 往右（原本 50% → 72%） */
+  transform: translateX(-50%);
+}
+
+
+/* =========================================================
+   🔥 全站統一背景色：#EDEEF1
+   （登入頁 login / onboarding 填資料保持原狀）
+========================================================= */
+
+body,
+html {
+  background-color: #EDEEF1 !important;
+}
+
+
+/* NavBar 背景也變成 #EDEEF1 */
+.top-nav-wrapper {
+  background-color: #EDEEF1 !important;
+}
+
+/* 原先 navbar.png 撕紙背景取消（避免干擾） */
+.top-nav-bg {
+  display: none !important;
+}
+
+/* Discovery / Home / Profile / Chat / Activities 背景統一 */
+.home-container,
+.discovery-page,
+.profile-page,
+.chat-page,
+.activities-page,
+.matches-page {
+  background-color: #EDEEF1 !important;
+}
+
+/* 強制移除舊的碎紙背景 */
+body,
+.paper-bg,
+.bg-grid {
+  background-image: none !important;
+  background-color: #EDEEF1 !important;
+}
+
+.navbar-frame {
+  width: 100%;
+  background-color: #EDEEF1;
+  padding: 20px 0;
+  display: flex;
+  justify-content: center;
+  border-radius: 20px;
+  border: 2px solid #C8C8CD;
+  margin: 10px auto 20px auto;
+  max-width: 1300px;
+  box-sizing: border-box;
+}
+
+
+/* =========================
+   配對頁 Discovery 版面
+   ========================= */
+
+.discovery-page {
+  min-height: calc(100vh - 0px);
+  display: flex;
+  justify-content: center;
+  padding: 32px 16px 48px;
+}
+
+/* 整個白卡（其實是淡灰色） */
+.discovery-card {
+  width: 100%;
+  max-width: 1100px;
+  background: #edeef1;
+  border-radius: 32px;
+  padding: 32px 40px 40px;
+  box-shadow: 0 6px 18px rgba(0, 0, 0, 0.06);
+}
+
+/* 上半部：大頭貼 + 生活照區 */
+.discovery-top {
+  display: flex;
+  gap: 40px;
+  align-items: flex-start;
+}
+
+/* 左邊大頭貼 */
+.discovery-avatar-wrap {
+  width: 320px;
+  flex-shrink: 0;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+}
+
+.discovery-avatar-img,
+.discovery-avatar-placeholder {
+  width: 100%;
+  aspect-ratio: 1 / 1; /* 正方形再變圓 */
+  border-radius: 999px;
+  background: #d4d9e4;
+  object-fit: cover;
+}
+
+/* 右邊：名字 + 三張生活照 */
+.discovery-right {
+  flex: 1;
+}
+
+.discovery-name-row {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin-bottom: 24px;
+}
+
+.discovery-name {
+  font-size: 40px;
+  font-weight: 700;
+  color: #424a5d;
+}
+
+.discovery-gender {
+  font-size: 36px;
+}
+
+.discovery-gender-male {
+  color: #1f7af2;
+}
+
+.discovery-gender-female {
+  color: #e2629b;
+}
+
+/* 三張生活照排成一排 */
+.discovery-life-row {
+  display: flex;
+  gap: 24px;
+}
+
+.discovery-life-img,
+.discovery-life-placeholder {
+  width: 150px;
+  aspect-ratio: 1 / 1;
+  border-radius: 24px;
+  background: #d4d9e4;
+  object-fit: cover;
+}
+
+/* 下半部：灰底資訊區 */
+.discovery-info-block {
+  margin-top: 32px;
+  background: #d7d8dd;
+  border-radius: 28px;
+  padding: 28px 40px 80px; /* 底部加多一點空間留給按鈕 */
+  position: relative;
+}
+
+.discovery-info-text {
+  font-size: 24px;
+  color: #333645;
+  margin-bottom: 12px;
+}
+
+.discovery-info-intro {
+  line-height: 1.6;
+}
+
+/* 略過 / 喜歡 按鈕放在右下角 */
+.discovery-actions {
+  position: absolute;
+  right: 40px;
+  bottom: 18px;
+  display: flex;
+  gap: 24px;
+}
+
+.discovery-btn {
+  border: none;
+  padding: 0;
+  background: transparent;
+  cursor: pointer;
+}
+
+.discovery-btn img {
+  display: block;
+  width: 200px;
+  height: auto;
+}
+
+/* 提示訊息 */
+.discovery-msg {
+  margin-top: 20px;
+  text-align: center;
+  font-size: 22px;
+  color: #20784a;
+}
+
+/* 手機版大致縮小一下 */
+@media (max-width: 900px) {
+  .discovery-card {
+    padding: 24px 20px 32px;
+  }
+
+  .discovery-top {
+    flex-direction: column;
+    align-items: center;
+  }
+
+  .discovery-avatar-wrap {
+    width: 260px;
+  }
+
+  .discovery-life-row {
+    justify-content: center;
+  }
+
+  .discovery-info-block {
+    padding: 24px 20px 96px;
+  }
+
+  .discovery-actions {
+    position: static;
+    margin-top: 24px;
+    justify-content: center;
+  }
+}
+
+/* ❤️ 喜歡動畫 */
+.heart-anim {
+  position: fixed;
+  top: 40%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  font-size: 120px;
+  animation: heart-pop 0.7s ease forwards;
+  z-index: 1000;
+}
+
+@keyframes heart-pop {
+  0% {
+    transform: translate(-50%, -50%) scale(0);
+    opacity: 0;
+  }
+  60% {
+    transform: translate(-50%, -50%) scale(1.2);
+    opacity: 1;
+  }
+  100% {
+    transform: translate(-50%, -50%) scale(1);
+    opacity: 0;
+  }
+}
+
+/* 🔄 滑動動畫 */
+.slide-left {
+  animation: slide-left 0.5s forwards;
+}
+
+.slide-right {
+  animation: slide-right 0.5s forwards;
+}
+
+@keyframes slide-left {
+  0% { opacity: 1; transform: translateX(0); }
+  100% { opacity: 0; transform: translateX(-150px); }
+}
+
+@keyframes slide-right {
+  0% { opacity: 1; transform: translateX(0); }
+  100% { opacity: 0; transform: translateX(150px); }
+}
+
+/* 🔍 點擊照片放大 */
+.img-preview {
+  position: fixed;
+  inset: 0;
+  background: rgba(0,0,0,0.7);
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  z-index: 2000;
+}
+
+.img-preview img {
+  max-width: 90vw;
+  max-height: 90vh;
+  border-radius: 20px;
+  box-shadow: 0 0 20px rgba(255,255,255,0.4);
+}
+
+/* ❤️ 粉蠟筆愛心動畫容器 */
+.heart-anim {
+  position: fixed;
+  top: 45%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  text-align: center;
+  z-index: 9999;
+  animation: heartFadeOut 1.2s ease forwards;
+}
+
+/* 愛心圖片 */
+.heart-img {
+  width: 200px;
+  height: auto;
+  animation: heartBounce 0.9s ease-out forwards;
+  filter: drop-shadow(0px 4px 8px rgba(0,0,0,0.25));
+}
+
+/* 顯示的文字：「已送出喜歡給 ___ 」 */
+.heart-text {
+  margin-top: 12px;
+  font-size: 32px;
+  color: #e65a7a;
+  font-weight: bold;
+  opacity: 0;
+  animation: textFadeIn 0.6s ease-out 0.3s forwards;
+}
+
+
+/* ❤️ 主要跳動動畫 */
+@keyframes heartBounce {
+  0% { transform: scale(0.4); opacity: 0; }
+  15% { transform: scale(1.3); opacity: 1; }
+  35% { transform: scale(0.9); }
+  60% { transform: scale(1.25); }
+  100% { transform: scale(1); }
+}
+
+/* ❤️ 粉蠟筆愛心淡出 */
+@keyframes heartFadeOut {
+  0% { opacity: 1; }
+  70% { opacity: 1; }
+  100% { opacity: 0; }
+}
+
+/* ❤️ 文字淡入 */
+@keyframes textFadeIn {
+  0% { opacity: 0; transform: translateY(8px); }
+  100% { opacity: 1; transform: translateY(0); }
+}
+
+/* ===========================
+   活動列表 Activities Page
+=========================== */
+
+.activities-page {
+  padding-top: 40px;
+  width: 100%;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+}
+
+/* 上方：切換/建立活動按鈕列 */
+.activities-header {
+  display: flex;
+  align-items: center;
+  gap: 20px;
+  width: 90%;
+  max-width: 1100px;
+  margin-bottom: 25px;
+}
+
+.activities-tab {
+  background: #D5D6DB;
+  padding: 12px 24px;
+  border-radius: 14px;
+  font-size: 26px;
+  font-weight: 700;
+  box-shadow: 2px 4px 6px rgba(0,0,0,0.15);
+}
+
+.activities-create-btn {
+  background: #77C05A;
+  padding: 12px 28px;
+  border-radius: 14px;
+  font-size: 26px;
+  font-weight: 700;
+  color: white;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  box-shadow: 2px 4px 6px rgba(0,0,0,0.15);
+}
+
+/* 活動卡片區域 */
+.activities-list-wrap {
+  width: 90%;
+  max-width: 1100px;
+  display: flex;
+  flex-direction: column;
+  gap: 32px;
+}
+
+/* 單一卡片 */
+.activity-card {
+  background: #FFF;
+  border-radius: 16px;
+  padding: 28px;
+  box-shadow: 0 6px 14px rgba(0,0,0,0.08);
+  border-left: 10px solid #86C77A;
+}
+
+.activity-header {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  margin-bottom: 12px;
+}
+
+.activity-owner-tag {
+  background: #65B34F;
+  padding: 8px 22px;
+  border-radius: 12px;
+  font-size: 22px;
+  color: white;
+  font-weight: 700;
+}
+
+.activity-title {
+  font-size: 24px;
+  font-weight: 700;
+}
+
+/* 內容區 */
+.activity-body {
+  margin-left: 8px;
+}
+
+.activity-desc {
+  font-size: 20px;
+  margin-bottom: 10px;
+}
+
+.activity-info-row {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  font-size: 20px;
+  margin-bottom: 6px;
+}
+
+.activity-actions {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: 12px;
+  margin-top: 12px;
+}
+
+.activity-btn-join {
+  background: #E5A1A1;
+  padding: 12px 28px;
+  border-radius: 14px;
+  font-size: 22px;
+  font-weight: 700;
+  color: #4A3B3B;
+  cursor: pointer;
+}
+
+.activity-btn-detail {
+  background: #CACACA;
+  padding: 12px 28px;
+  border-radius: 14px;
+  font-size: 22px;
+  font-weight: 700;
+  cursor: pointer;
+}
+
+
+/* 全站背景顏色（登入 & 填資料以外仍保持白色）*/
+body {
+  background-color: #EDEEF1;
+  font-family: 'Noto Sans TC', sans-serif;
+}
+
+.top-nav-wrapper {
+  width: 100%;
+  background-color: #EDEEF1;
+  display: flex;
+  justify-content: center;
+  padding-top: 8px;
+}
+
+.top-nav-border {
+  width: 95%;
+  max-width: 1100px;
+  border: 2px solid #c9c9c9;
+  border-radius: 20px;
+  background: white;
+  padding: 10px 0;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+}
+
+.nav-links {
+  display: flex;
+  gap: 30px;
+  align-items: center;
+}
+
+.nav-icon {
+  cursor: pointer;
+}
+/* === 活動頁（新版 UI）=== */
+/* 外層置中 */
+.activities-new-page {
+  width: 100%;
+  max-width: 1100px;
+  margin: 0 auto;
+  padding-top: 40px;
+}
+
+/* 上方兩個按鈕排到右邊 */
+.activities-new-header {
+  width: 100%;
+  max-width: 1200px;
+  margin: 0 auto;
+
+  display: flex;
+  justify-content: flex-end;  /* 靠右 */
+  align-items: center;
+  gap: 15px;
+}
+
+
+/* 報名列表按鈕（灰色 + icon） */
+.activities-new-tab {
+  background: #D5D6DB;
+  padding: 12px 26px;
+  border-radius: 14px;
+  font-size: 28px;
+  font-weight: 700;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  box-shadow: 2px 4px 6px rgba(0,0,0,0.15);
+}
+.activities-new-tab::before {
+  content: "";
+  display: inline-block;
+  width: 32px;
+  height: 32px;
+  background-image: url("/list.png");
+  background-size: contain;
+  background-repeat: no-repeat;
+}
+.activities-new-fliter{
+  background: #D5D6DB;
+  padding: 12px 26px;
+  border-radius: 14px;
+  font-size: 28px;
+  font-weight: 700;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  box-shadow: 2px 4px 6px rgba(0,0,0,0.15);
+}
+
+.activities-new-fliter::before {
+  content: "";
+  display: inline-block;
+  width: 32px;
+  height: 32px;
+  background-image: url("/filter.png");
+  background-size: contain;
+  background-repeat: no-repeat;
+}
+
+/* 創建活動按鈕（綠色 + icon） */
+.activities-new-create {
+  background: #77C05A;
+  padding: 12px 28px;
+  border-radius: 14px;
+  font-size: 28px;
+  font-weight: 700;
+  color: whitesmoke;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  box-shadow: 2px 4px 6px rgba(0,0,0,0.15);
+}
+.activities-new-create::before {
+  content: "";
+  display: inline-block;
+  width: 32px;
+  height: 32px;
+  background-image: url("/join.png");
+  background-size: contain;
+  background-repeat: no-repeat;
+}
+
+/* 活動清單區 */
+.activities-new-list {
+  width: 100%;
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+}
+
+/* 卡片 */
+.activities-new-card {
+  background: white;
+  border-radius: 20px;
+  padding: 28px 32px;
+  width: 100%;
+  box-shadow: 0 6px 14px rgba(0,0,0,0.09);
+  border: 1px solid #ddd;
+  margin: 0 auto;      /* 水平置中 */
+  margin-bottom: 30px; /* 每個活動卡片之間更舒適 */
+}
+
+/* 綠/黃分類標籤 */
+.activities-new-tag {
+  padding: 10px 26px;
+  border-radius: 16px;
+  font-size: 28px;
+  font-weight: 700;
+  color: white;
+  display: inline-block;
+  margin-bottom: 14px;
+}
+.tag-green { background: #45b36a; }
+.tag-yellow { background: #f4c842; }
+
+/* 活動名稱 */
+.activities-new-title {
+  font-size: 32px;
+  font-weight: 800;
+  margin-bottom: 8px;
+}
+
+/* 日期/人數列 */
+.activities-new-info-row {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  font-size: 24px;
+  margin: 10px 0;
+}
+
+/* icon */
+.activities-new-icon {
+  width: 50px;
+  height: 50px;
+  object-fit: contain;
+}
+
+/* 右側按鈕列（與示意圖相同） */
+.activities-new-actions {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: 14px;
+  margin-top: 18px;
+}
+
+/* 移除按鈕外框線（原本被瀏覽器加 outline）*/
+.activities-new-tab,
+.activities-new-join {
+  border: none !important;
+  outline: none !important;
+}
+
+
+/* 我要報名（粉色） */
+.activities-new-join {
+  background: #E5A1A1;
+  padding: 12px 32px;
+  border-radius: 14px;
+  font-size: 26px;
+  font-weight: 700;
+  color: #4A3B3B;
+  cursor: pointer;
+  box-shadow: 2px 4px 6px rgba(0,0,0,0.15);
+  transition: 0.2s;
+}
+
+/* 取消報名（灰色） */
+.activities-new-join.cancel {
+  background: #CFCFCF;
+  color: #333;
+}
+
+/* 查看活動詳情（灰色） */
+.activities-new-detail {
+  background: #CACACA;
+  padding: 12px 32px;
+  border-radius: 14px;
+  font-size: 26px;
+  font-weight: 700;
+  color: #333;
+  cursor: pointer;
+  box-shadow: 2px 4px 6px rgba(0,0,0,0.15);
+}
+
+/* ====== 取消 Link 文字底線 ====== */
+.activities-new-create,
+.activities-new-detail {
+  text-decoration: none !important;
+}
+
+/* ====== 整個活動頁面寬度與 North Bar 對齊 ======
+   讓白色框框的邊界與 NavBar 的外框一致  */
+.activities-new-page,
+.activities-new-header,
+.activities-new-list {
+  width: 100%;
+  max-width: 1200px;   /* ← 跟 North Bar 一樣寬 */
+  margin: 0 auto;      /* 水平置中 */
+}
+
+/* ====== 活動卡片外框（左右再收窄一點，更接近第二張圖）===== */
+.activities-new-card {
+  border: 1px solid #e1e1e1;
+  background: white;
+  padding: 25px 35px;
+  border-radius: 22px;
+  box-shadow: 0 4px 10px rgba(0,0,0,0.06);
+}
+
+/* ====== 查看活動詳情按鈕：移除底線 ====== */
+.activities-new-detail {
+  text-decoration: none !important;
+}
+
+/* ====== 創建活動：移除底線 ====== */
+.activities-new-create {
+  text-decoration: none !important;
+}
+
+/* 活動清單上方留白（防止黏太近） */
+.activities-new-list {
+  margin-top: 20px;   /* 原本太靠近，上方拉開 */
+}
+/* 遮罩背景：變暗 + 模糊 */
+.detail-mask {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background: rgba(0,0,0,0.35);
+  backdrop-filter: blur(6px);   /* ⭐ 加強背景模糊 */
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  z-index: 5000;
+}
+
+/* 中央淡灰大框 */
+.detail-panel {
+  position: relative;
+  width: 70%;
+  max-width: 760px;
+  background: #eeeeee;
+  border-radius: 32px;
+  padding: 0px 50px 50px 50px;
+  box-shadow: 0px 4px 15px rgba(0,0,0,0.25);
+  font-size: 32px;
+  color: #333;
+}
+
+/* 左下喇叭 */
+.detail-megaphone {
+  position: absolute;
+  bottom: -25px;
+  left: -50px;
+  width: 240px;
+  pointer-events: none;
+}
+
+/* 標題 */
+.detail-title {
+  font-size: 48px;
+  font-weight: 800;
+  margin-bottom: 20px;
+}
+
+/* 描述文字 */
+.detail-subtitle {
+  font-size: 32px;
+  margin-bottom: 35px;
+}
+
+/* 每一列 */
+.detail-row {
+  display: flex;
+  align-items: center;
+  gap: 20px;
+  font-size: 32px;
+  margin-bottom: 22px;
+}
+
+.detail-icon {
+  width: 42px;
+  height: 42px;
+}
+
+/* ⭐ 按鈕區：改成水平分開 */
+.detail-actions {
+  display: flex;
+  justify-content: center;
+  gap: 40px;     /* ⭐ 中間間距拉開 */
+  margin-top: 40px;
+}
+
+/* 聯絡主辦人 */
+.detail-contact-btn {
+  background: #e6a5a5;
+  padding: 18px 45px;
+  border-radius: 18px;
+  font-size: 32px;
+  box-shadow: 0 3px 6px rgba(0,0,0,0.3);
+}
+
+/* 取消 */
+.detail-close-btn {
+  background: #cfcfcf;
+  padding: 18px 45px;
+  border-radius: 18px;
+  font-size: 32px;
+}
+
+
+/* ======= 創建活動頁外框 ======= */
+.create-wrapper {
+  width: 100%;
+  padding-top: 50px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+}
+
+/* ======= 上方兩個選擇卡 ======= */
+.create-category-row {
+  display: flex;
+  gap: 40px;
+  margin-bottom: 40px;
+}
+
+.create-card {
+  width: 380px;
+  background: #efefef;
+  border-radius: 30px;
+  padding: 25px;
+  cursor: pointer;
+  text-align: center;
+  box-shadow: 0 4px 10px rgba(0,0,0,0.08);
+  transition: 0.2s;
+}
+
+.create-card.active {
+  outline: 6px solid #2f8f3b;
+}
+
+.create-card.travel.active {
+  outline-color: #f4c842;
+}
+
+/* 偽造找牌咖的綠色外框（不用圖片） */
+.find-card-icon {
+  width: 80px;
+  height: 80px;
+  border: 7px solid #1fa043;
+  border-radius: 20px;
+  margin: 0 auto 10px auto;
+}
+
+.create-card-img {
+  width: 90px;
+  margin-bottom: 10px;
+}
+
+.create-card-title {
+  font-size: 32px;
+  font-weight: 700;
+}
+
+.create-card-sub {
+  font-size: 22px;
+  color: #666;
+  margin-top: 5px;
+}
+
+/* ======= 下方淡綠色表單區 ======= */
+.create-form-box {
+  width: 90%;
+  max-width: 1100px;
+  background: #cadec8;
+  border-radius: 25px;
+  padding: 30px 50px;
+}
+
+.form-row {
+  display: flex;
+  align-items: center;
+  margin-bottom: 25px;
+}
+
+.form-row label {
+  width: 150px;
+  font-size: 28px;
+  font-weight: 600;
+}
+
+.form-input {
+  flex: 1;
+  height: 45px;
+  border-radius: 18px;
+  border: 2px solid #ccc;
+  padding: 0 12px;
+  background: white;
+  font-size: 24px;
+}
+
+.form-textarea {
+  width: 100%;
+  min-height: 160px;
+  border-radius: 18px;
+  border: 2px solid #ccc;
+  padding: 15px;
+  font-size: 22px;
+  background: white;
+  margin-bottom: 25px;
+}
+
+.create-btn-row {
+  display: flex;
+  justify-content: flex-end;
+  gap: 20px;
+  margin-top: 20px;
+}
+
+.btn-cancel {
+  background: #d0d0d0;
+  color: #333;
+  padding: 12px 35px;
+  font-size: 30px;
+  border-radius: 20px;
+}
+
+.btn-submit {
+  background: #44a851;
+  color: white;
+  padding: 12px 35px;
+  font-size: 30px;
+  border-radius: 20px;
+}
+
+
+/* ====== 報名列表視窗 ====== */
+.popup-wrapper.small {
+  width: 520px;
+  padding: 40px;
+}
+
+.join-list-box {
+  margin-top: 20px;
+  display: flex;
+  flex-direction: column;
+  gap: 18px;
+}
+
+.join-item {
+  background: white;
+  padding: 14px 20px;
+  border-radius: 15px;
+  box-shadow: 0 3px 6px rgba(0,0,0,0.1);
+}
+
+.join-title {
+  font-size: 24px;
+  font-weight: 700;
+  margin-bottom: 4px;
+}
+
+.join-date {
+  font-size: 18px;
+  color: #666;
+}
+
+.join-cat {
+  font-size: 18px;
+  color: #3a7a3a;
+  font-weight: 600;
+}
+
+/* === 聊天氣泡（像 LINE，有尾巴） === */
+
+.chat-bubble {
+  display: inline-block;
+  position: relative;
+  padding: 12px 18px;
+  border-radius: 22px;
+  font-size: 20px;
+  line-height: 1.6;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.12);
+  max-width: 70vw; /* 再保險一點，避免超寬 */
+  word-break: break-word;
+}
+
+/* 對方：灰色 + 左邊尾巴 */
+.chat-bubble-left {
+  background-color: #e5e5e5;
+  color: #111827;
+}
+
+.chat-bubble-left::before {
+  content: "";
+  position: absolute;
+  left: -6px;
+  bottom: 8px;
+  width: 14px;
+  height: 14px;
+  background-color: #e5e5e5;
+  border-bottom-left-radius: 14px;
+  transform: rotate(45deg);
+}
+
+/* 自己：藍色 + 右邊尾巴 */
+.chat-bubble-right {
+  background-color: #4f9bff;
+  color: #ffffff;
+}
+
+.chat-bubble-right::before {
+  content: "";
+  position: absolute;
+  right: -6px;
+  bottom: 8px;
+  width: 14px;
+  height: 14px;
+  background-color: #4f9bff;
+  border-bottom-right-radius: 14px;
+  transform: rotate(45deg);
+}
+.activity-card-box {
+  background: #ffffff;
+  border-radius: 28px;
+  padding: 16px 18px;
+  margin: 0 20px 12px 20px;
+  box-shadow: 0 2px 8px rgba(0,0,0,0.06);
+}
+
+.activity-card-title {
+  font-size: 22px;
+  font-weight: 700;
+  color: #222;
+  margin-bottom: 4px;
+}
+
+.activity-card-desc {
+  font-size: 18px;
+  color: #444;
+  margin-bottom: 10px;
+  line-height: 1.3;
+}
+
+.activity-card-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-top: 4px;
+}
+
+.activity-card-icon {
+  width: 20px;
+  height: 26px;
+  opacity: 0.7;
+}
+
+.activity-card-info {
+  font-size: 18px;
+  color: #333;
+}
+/* 按鈕共用基底 */
+.filter-btn {
+  padding: 6px 18px;
+  border-radius: 999px;
+  font-size: 22px;
+  border: 3px solid #bfbfbf;
+  background: #e8e8e8;
+  transition: 0.2s;
+  cursor: pointer;
+}
+
+.filter-btn:hover {
+  background: #dcdcdc;
+}
+
+/* ⭐ 大分類：找牌咖用綠色 */
+.filter-btn.active.green-main {
+  background: #b8f5b1;
+  border-color: #32a852;
+}
+
+/* ⭐ 小分類：找牌咖的小項也綠色 */
+.filter-btn.active.green-sub {
+  background: #c6f7bd;
+  border-color: #2c9c4a;
+}
+
+/* ⭐ 大分類其他：全部 / 找旅伴 (維持黃色) */
+.filter-btn.active.yellow {
+  background: #ffd88a;
+  border-color: #e6a600;
+}
+
+/* ⭐ 小分類：找旅伴 用黃色 */
+.filter-btn.active.yellow-sub {
+  background: #ffe29d;
+  border-color: #d6a300;
+}
+
+
+/* 整體背景 */
+.profile-bg {
+  min-height: 100vh;
+  background: white; /* 原本 #F3F3F3 → 改成純白 */
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  padding-top: 40px;
+}
+
+
+/* 大框（只有一個） */
+.profile-big-card {
+  width: 100%;         /* 原本是 90% → 改滿版 */
+  max-width: 100%;     /* 拿掉限制 */
+  background: none;    /* 移除白色背景 */
+  border-radius: 0;    /* 移除圓角 */
+  box-shadow: none;    /* 移除陰影 */
+  padding-bottom: 0;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+}
+
+
+
+/* 頭貼 */
+.profile-avatar {
+  width: 180px;
+  height: 180px;
+  border-radius: 50%;
+  object-fit: cover;
+  border: 3px solid #ccc;
+}
+
+/* 名字 */
+.profile-name {
+  font-size: 38px;
+  font-weight: bold;
+}
+
+
+
+/* 中間灰色區塊 */
+.profile-inner-box {
+  width: 90%;
+  margin-top: 30px;   /* 讓灰框貼近頭貼區 */
+  background: #EFEFEF;
+  border-radius: 30px;
+
+  padding: 40px;
+  display: flex;
+  gap: 60px;
+  flex-wrap: wrap;
+  justify-content: space-between;
+}
+
+
+/* 左側生活照 */
+.profile-left {
+  flex: 1;
+}
+
+.profile-left-title {
+  font-size: 28px;
+  font-weight: bold;
+  margin-bottom: 10px;
+}
+
+.profile-gallery-img {
+  width: 200px;
+  height: 200px;
+  object-fit: cover;
+  border-radius: 20px;
+  margin-bottom: 14px;
+}
+
+.profile-gallery-placeholder {
+  width: 200px;
+  height: 200px;
+  border-radius: 20px;
+  background: #cfcfcf;
+}
+
+/* 右側基本資料 */
+.profile-info {
+  flex: 1;
+  font-size: 24px;
+  line-height: 42px;
+}
+
+.profile-info span {
+  font-weight: bold;
+}
+
+
+/* ========= 彈跳視窗背景 ========= */
+.profile-modal-mask {
+  position: fixed;
+  inset: 0;
+  background: rgba(0,0,0,0.35);
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  z-index: 50;
+}
+
+/* ========= 彈跳視窗本體 ========= */
+.profile-modal {
+  width: 90%;
+  max-width: 500px;
+  background: white;
+  padding: 30px;
+  border-radius: 30px;
+  box-shadow: 0px 5px 18px rgba(0,0,0,0.2);
+}
+
+.modal-title {
+  font-size: 28px;
+  font-weight: bold;
+  text-align: center;
+  margin-bottom: 25px;
+}
+
+.modal-field {
+  display: flex;
+  flex-direction: column;
+  margin-bottom: 18px;
+}
+
+.modal-field label {
+  font-size: 20px;
+  font-weight: bold;
+  margin-bottom: 6px;
+}
+
+.modal-field input,
+.modal-field select,
+.modal-field textarea {
+  font-size: 18px;
+  border: 1px solid #ccc;
+  border-radius: 12px;
+  padding: 10px 12px;
+}
+
+.modal-field textarea {
+  height: 80px;
+  resize: none;
+}
+
+/* ========= 按鈕 ========= */
+.modal-btns {
+  display: flex;
+  justify-content: center;
+  gap: 20px;
+  margin-top: 10px;
+}
+
+.btn-save {
+  background: #1EAD5A;
+  color: white;
+  padding: 10px 24px;
+  border-radius: 14px;
+  font-size: 20px;
+}
+
+.btn-cancel {
+  background: #ddd;
+  padding: 10px 24px;
+  border-radius: 14px;
+  font-size: 20px;
+}
+
+.modal-error {
+  color: red;
+  margin-top: 12px;
+  text-align: center;
+}
+.logout-btn {
+  margin-top: 15px;
+  background: #fc4d46;
+  color: white;
+  font-size: 22px;
+  padding: 10px 24px;
+  border-radius: 20px;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin-left: 12px;
+}
+.logout-btn:hover {
+  background: #fc4d46;
+}
+
+/* 修改資料按鈕 */
+.profile-edit-btn {
+  margin-top: 15px;
+  background: #1EAD5A;
+  color: white;
+  font-size: 22px;
+  padding: 10px 24px;
+  border-radius: 20px;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+/* =========================================================
+   📱 手機版響應式：首頁 Home Page
+   不影響桌面版，僅在寬度 ≤ 768px 時生效
+========================================================= */
+@media (max-width: 768px) {
+
+  /* 讓首頁不要被 navbar 擠爆 */
+  .home-container {
+    padding-top: 160px; 
+    gap: 20px;
+  }
+
+  /* 雙卡片改成垂直排列 */
+  .home-two-cards {
+    flex-direction: column;
+    gap: 30px;
+    transform: scale(1); /* 手機版不要放太大 */
+  }
+
+  /* 單一卡片縮小 */
+  .home-card {
+    transform: scale(1.15);   /* 原本 1.85 → 手機稍微縮小 */
+  }
+
+  /* 卡片內的圖片自動縮放 */
+  .home-card-bg {
+    width: 85vw;
+    max-width: 380px;
+    height: auto;
+  }
+
+  /* 卡片上的按鈕位置重算，避免飛出去 */
+  .home-button {
+    padding: 12px 24px;
+    font-size: 16px;
+    bottom: 50px;  /* 原本 70px → 手機太高會飛走 */
+  }
+
+  /* 左卡文字位置 */
+  .home-card:first-child .home-button {
+    left: 50%;
+    transform: translateX(-50%);
+  }
+
+  /* 右卡文字位置 */
+  .home-card:last-child .home-button {
+    left: 50%;
+    transform: translateX(-50%);
+  }
+
+  /* 入口分類 grid：改成 2 欄 */
+  .home-btn-grid {
+    grid-template-columns: repeat(2, 1fr);
+    gap: 24px;
+    width: 95%;
+  }
+
+  /* 功能卡片縮小 */
+  .home-btn-bg {
+    width: 100%;
+    max-width: 150px;
+  }
+
+  .home-btn-title {
+    width: 32px;
+    top: 50%;
+  }
+}

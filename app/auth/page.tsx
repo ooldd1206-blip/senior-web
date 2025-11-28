@@ -1,7 +1,8 @@
 "use client";
 
-import { useState } from "react";
-import { useRouter } from "next/navigation";
+import { useState, useEffect } from "react";
+import { useRouter, useSearchParams } from "next/navigation";
+import Image from "next/image";
 
 export default function AuthPage() {
   const [mode, setMode] = useState<"login" | "register">("login");
@@ -9,11 +10,24 @@ export default function AuthPage() {
   const [password, setPassword] = useState("");
   const [displayName, setDisplayName] = useState("");
   const [message, setMessage] = useState("");
+  const [loading, setLoading] = useState(false);
+
   const router = useRouter();
+  const searchParams = useSearchParams();
+
+  // 判斷 email 驗證跳轉回來
+  useEffect(() => {
+    const verified = searchParams.get("verified");
+    if (verified === "1") {
+      setMode("login");
+      setMessage("✅ Email 驗證成功！請登入");
+    }
+  }, [searchParams]);
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
-    setMessage("處理中...");
+    setMessage("");
+    setLoading(true);
 
     const res = await fetch("/api/auth", {
       method: "POST",
@@ -27,74 +41,127 @@ export default function AuthPage() {
     });
 
     const data = await res.json();
-    setMessage(data.message || data.error || "");
+    setLoading(false);
 
-    if (!res.ok) return;
-
-    // ✅ 如果是新註冊，就導到引導頁
-    if (data.justRegistered) {
-      router.push("/onboarding");
+    if (!res.ok) {
+      setMessage(data.error || "發生錯誤");
       return;
     }
 
-    // ✅ 如果是登入，就回首頁（你原本的作法）
+    /** ✨ 註冊成功 */
+    if (mode === "register") {
+      setMessage("✉️ 註冊成功！請前往信箱驗證後再登入！");
+      setPassword("");
+      setMode("login");
+      return;
+    }
+
+    /** ✔ 登入成功 → 首頁 */
     if (mode === "login") {
-      setTimeout(() => router.push("/"), 500);
+      setMessage("登入成功！跳轉中...");
+      setTimeout(() => router.push("/home"), 500);
     }
   }
 
   return (
-    <main className="min-h-screen flex items-center justify-center bg-amber-50 p-6">
-      <form
-        onSubmit={handleSubmit}
-        className="bg-white shadow-lg rounded-2xl p-8 w-full max-w-md text-center"
-      >
-        <h1 className="text-3xl font-bold mb-6">
-          {mode === "login" ? "登入" : "註冊"}
-        </h1>
-        <div className="space-y-4">
-          {mode === "register" && (
-            <input
-              type="text"
-              placeholder="暱稱"
-              value={displayName}
-              onChange={(e) => setDisplayName(e.target.value)}
-              className="w-full p-3 border rounded-lg text-lg"
-              required
-            />
-          )}
-          <input
-            type="email"
-            placeholder="電子郵件"
-            value={email}
-            onChange={(e) => setEmail(e.target.value)}
-            className="w-full p-3 border rounded-lg text-lg"
-            required
-          />
-          <input
-            type="password"
-            placeholder="密碼"
-            value={password}
-            onChange={(e) => setPassword(e.target.value)}
-            className="w-full p-3 border rounded-lg text-lg"
-            required
-          />
+    <main className="bg-grid">
+
+      {/* ======================
+          註冊／登入便利貼
+      ====================== */}
+      <div className="register-memo-wrap">
+        <Image
+          src="/memo.png"
+          alt="memo"
+          width={900}
+          height={900}
+          className="memo-img"
+          priority
+        />
+
+        {/* 內容 */}
+        <div className="register-content">
+          <h1 className="register-title">
+            {mode === "login" ? "登入" : "註冊"}
+          </h1>
+
+          <form onSubmit={handleSubmit} className="register-form">
+
+            {mode === "register" && (
+              <div className="row">
+                <label>暱稱</label>
+                <input
+                  type="text"
+                  value={displayName}
+                  onChange={(e) => setDisplayName(e.target.value)}
+                  required
+                />
+              </div>
+            )}
+
+            <div className="row">
+              <label>帳號</label>
+              <input
+                type="email"
+                value={email}
+                placeholder="請輸入電子郵件"
+                onChange={(e) => setEmail(e.target.value)}
+                required
+              />
+            </div>
+
+            <div className="row">
+              <label>密碼</label>
+              <input
+                type="password"
+                value={password}
+                placeholder={
+                  mode === "register"
+                    ? "至少 8 碼，需含英文與數字"
+                    : "請輸入密碼"
+                }
+                onChange={(e) => setPassword(e.target.value)}
+                required
+              />
+            </div>
+
+            <div className="register-buttons">
+              {mode === "login" && (
+                <button
+                  type="button"
+                  className="auth-btn auth-btn-pink"
+                  onClick={() => router.push("/forgot-password")}
+                >
+                  忘記密碼
+                </button>
+              )}
+
+              <button type="submit" className="auth-btn auth-btn-green">
+                {loading ? "處理中..." : mode === "login" ? "登入" : "註冊"}
+              </button>
+            </div>
+
+            {message && (
+              <p className="register-message">{message}</p>
+            )}
+
+            {/* 下面的切換按鈕 */}
+            <button
+              type="button"
+              onClick={() => {
+                setMode(mode === "login" ? "register" : "login");
+                setMessage("");
+              }}
+              className="mt-4 text-blue-600 underline text-lg"
+            >
+              {mode === "login"
+                ? "沒有帳號？註冊一個"
+                : "已有帳號？登入"}
+            </button>
+
+          </form>
         </div>
-        <button
-          type="submit"
-          className="mt-6 w-full bg-blue-400 hover:bg-blue-500 text-white text-xl font-semibold py-3 rounded-lg"
-        >
-          {mode === "login" ? "登入" : "註冊"}
-        </button>
-        <p className="mt-4 text-lg text-neutral-700">{message}</p>
-        <button
-          type="button"
-          onClick={() => setMode(mode === "login" ? "register" : "login")}
-          className="mt-6 text-blue-600 underline text-lg"
-        >
-          {mode === "login" ? "沒有帳號？註冊一個" : "已有帳號？登入"}
-        </button>
-      </form>
+      </div>
     </main>
   );
 }

@@ -2,138 +2,99 @@
 
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
+import "../globals.css";
 
-// 台灣縣市選項
-const CITY_OPTIONS = [
-  "台北市",
-  "新北市",
-  "桃園市",
-  "台中市",
-  "台南市",
-  "高雄市",
-  "基隆市",
-  "新竹市",
-  "嘉義市",
-  "新竹縣",
-  "苗栗縣",
-  "彰化縣",
-  "南投縣",
-  "雲林縣",
-  "嘉義縣",
-  "屏東縣",
-  "宜蘭縣",
-  "花蓮縣",
-  "台東縣",
-  "澎湖縣",
-  "金門縣",
-  "連江縣",
-];
 
-// 長輩常見興趣選項
-const INTEREST_OPTIONS = [
-  "散步 / 走路",
-  "聊天喝茶",
-  "打牌 / 麻將",
-  "桌遊 / 撲克牌",
-  "唱歌 / 卡拉OK",
-  "跳舞",
-  "看書 / 寫字",
-  "看電視 / 追劇",
-  "看電影",
-  "下棋（象棋 / 西洋棋）",
-  "園藝 / 種花",
-  "做菜 / 烘焙",
-  "手作 / 編織 / 縫紉",
-  "旅遊 / 郊遊",
-  "爬山 / 輕健行",
-  "宗教活動",
-  "志工 / 服務",
-];
 
 export default function OnboardingPage() {
   const router = useRouter();
-
-  // 0,1,2,3 四步
   const [step, setStep] = useState(0);
 
-  // 表單欄位
   const [displayName, setDisplayName] = useState("");
   const [gender, setGender] = useState("");
   const [city, setCity] = useState("");
   const [ageGroup, setAgeGroup] = useState("");
-  const [interests, setInterests] = useState(""); // 送給後端的一整串字
   const [selectedInterests, setSelectedInterests] = useState<string[]>([]);
+  const [interests, setInterests] = useState("");
   const [bio, setBio] = useState("");
 
-  // 照片
   const [avatarUrl, setAvatarUrl] = useState("");
   const [galleryUrls, setGalleryUrls] = useState<string[]>([]);
 
   const [loading, setLoading] = useState(true);
   const [msg, setMsg] = useState("");
 
-  // 把已經有的資料抓回來
+  const CITY_OPTIONS = [
+    "台北市","新北市","桃園市","台中市","台南市","高雄市",
+    "基隆市","新竹市","嘉義市","新竹縣","苗栗縣","彰化縣",
+    "南投縣","雲林縣","嘉義縣","屏東縣","宜蘭縣","花蓮縣",
+    "台東縣","澎湖縣","金門縣","連江縣"
+  ];
+
+  const INTEREST_OPTIONS = [
+    "散步 / 走路","聊天喝茶","打牌 / 麻將","桌遊 / 撲克牌",
+    "唱歌 / 卡拉OK","跳舞","看書 / 寫字","看電視 / 追劇",
+    "看電影","下棋","園藝 / 種花","做菜 / 烘焙",
+    "手作 / 編織","旅遊 / 郊遊","爬山 / 輕健行",
+    "宗教活動","志工服務"
+  ];
+
+  useEffect(() => {
+    fetch("/api/profile")
+      .then(r => r.json())
+      .then(d => {
+        if (d.user?.onboardingCompleted) {
+          router.push("/discovery"); // ⭐ 已完成 → 不需要再填
+        }
+      });
+  }, []);
+  
+
+  // === 讀取資料 ===
   useEffect(() => {
     fetch("/api/profile")
       .then((r) => {
         if (r.status === 401) {
-          router.push("/auth");
+          router.push("/");
           return null;
         }
         return r.json();
       })
       .then((d) => {
-        if (d?.user) {
-          setDisplayName(d.user.displayName || "");
-          setGender(d.user.gender || "");
-          setCity(d.user.city || "");
-          setAgeGroup(d.user.ageGroup || "");
+        if (!d?.user) return;
+        const u = d.user;
 
-          const rawInterests: string = d.user.interests || "";
-          setInterests(rawInterests);
-          if (rawInterests) {
-            const arr = rawInterests
-              .split(/[,，、\s]+/)
-              .map((s: string) => s.trim())
-              .filter(Boolean);
-            setSelectedInterests(arr);
-          }
+        setDisplayName(u.displayName || "");
+        setGender(u.gender || "");
+        setCity(u.city || "");
+        setAgeGroup(u.ageGroup || "");
+        setBio(u.bio || "");
+        setAvatarUrl(u.avatarUrl || "");
+        setGalleryUrls(u.galleryUrls || []);
 
-          setBio(d.user.bio || "");
-          setAvatarUrl(d.user.avatarUrl || "");
-          setGalleryUrls(d.user.galleryUrls || []);
+        if (u.interests) {
+          const arr = u.interests.split(/[,，、\s]+/).filter(Boolean);
+          setSelectedInterests(arr);
+          setInterests(arr.join("、"));
         }
       })
       .finally(() => setLoading(false));
   }, [router]);
 
-  // 每一步的必填條件
   function canNext() {
-    if (step === 0) {
-      return displayName.trim() !== "" && gender.trim() !== "";
-    }
-    if (step === 1) {
-      return city.trim() !== "" && ageGroup.trim() !== "";
-    }
-    if (step === 2) {
-      return interests.trim() !== "" && bio.trim() !== "";
-    }
-    if (step === 3) {
-      return avatarUrl.trim() !== ""; // 頭貼必填
-    }
+    if (step === 0) return displayName && gender;
+    if (step === 1) return city && ageGroup;
+    if (step === 2) return interests && bio;
+    if (step === 3) return avatarUrl;
     return false;
   }
 
-  // 切換興趣勾選
   function toggleInterest(item: string) {
     setSelectedInterests((prev) => {
-      let next: string[];
-      if (prev.includes(item)) {
-        next = prev.filter((i) => i !== item);
-      } else {
-        next = [...prev, item];
-      }
-      // 存成一串字，送到後端
+      const next = prev.includes(item)
+        ? prev.filter((i) => i !== item)
+        : [...prev, item];
+
       setInterests(next.join("、"));
       return next;
     });
@@ -141,288 +102,270 @@ export default function OnboardingPage() {
 
   async function handleFinish() {
     setMsg("儲存中...");
+
     const res = await fetch("/api/profile", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({
-        displayName,
-        gender,
-        city,
-        ageGroup,
-        interests,
-        bio,
-        avatarUrl,
-        galleryUrls,
+        displayName, gender, city, ageGroup,
+        interests, bio, avatarUrl, galleryUrls
       }),
     });
 
     if (res.ok) {
-      setMsg("已完成，為您帶位到配對頁...");
+      setMsg("完成！即將前往配對頁...");
       setTimeout(() => router.push("/discovery"), 700);
     } else {
-      const t = await res.text();
-      setMsg(t || "儲存失敗，請再試一次");
+      setMsg("儲存失敗，請再試一次");
     }
   }
 
   if (loading) {
     return (
-      <main className="min-h-screen flex items-center justify-center bg-amber-50">
+      <main className="onboard-bg flex items-center justify-center">
         <p className="text-xl">載入中...</p>
       </main>
     );
   }
 
   return (
-    <main className="min-h-screen bg-amber-50 p-6 flex flex-col items-center">
-      <h1 className="text-3xl font-bold mb-2 text-neutral-900">
-        填一點資料，我們才好幫您配對 💛
-      </h1>
-      <p className="text-neutral-700 mb-6 text-lg">步驟 {step + 1} / 4</p>
+    <main className="onboard-bg">
+      <div className="onboard-content">
 
-      <div className="bg-white rounded-2xl shadow p-6 w-full max-w-xl space-y-5">
-        {/* 步驟 0：名字 + 性別 */}
-        {step === 0 && (
-          <>
-            <label className="block">
-              <span className="text-lg">要怎麼稱呼您？（必填）</span>
-              <input
-                value={displayName}
-                onChange={(e) => setDisplayName(e.target.value)}
-                className="mt-1 w-full rounded-xl border p-3 text-lg"
-                placeholder="例如：林阿姨、王伯伯"
-              />
-            </label>
+        <div className="step-block">
 
-            <label className="block">
-              <span className="text-lg">性別（必填）</span>
-              <div className="flex gap-3 mt-2">
-                <button
-                  type="button"
-                  onClick={() => setGender("男")}
-                  className={`flex-1 rounded-2xl border p-3 text-lg ${
-                    gender === "男" ? "bg-blue-200 border-blue-500" : "bg-white"
-                  }`}
-                >
-                  男
-                </button>
-                <button
-                  type="button"
-                  onClick={() => setGender("女")}
-                  className={`flex-1 rounded-2xl border p-3 text-lg ${
-                    gender === "女" ? "bg-pink-200 border-pink-500" : "bg-white"
-                  }`}
-                >
-                  女
-                </button>
-              </div>
-            </label>
-          </>
-        )}
+          <div className="paper-title-wrap">
+            <img src="/topic.png" className="paper-title-img" />
+          </div>
 
-        {/* 步驟 1：居住地 + 年齡層 */}
-        {step === 1 && (
-          <>
-            <label className="block">
-              <span className="text-lg">您住在哪裡？（必填）</span>
-              <div className="mt-2 grid grid-cols-2 sm:grid-cols-3 gap-2">
-                {CITY_OPTIONS.map((cName) => (
-                  <button
-                    key={cName}
-                    type="button"
-                    onClick={() => setCity(cName)}
-                    className={`rounded-xl border px-3 py-2 text-lg ${
-                      city === cName
-                        ? "bg-amber-200 border-amber-500"
-                        : "bg-white"
-                    }`}
-                  >
-                    {cName}
-                  </button>
-                ))}
-              </div>
-              {city && (
-                <p className="mt-2 text-sm text-neutral-600">
-                  已選擇：{city}
-                </p>
-              )}
-            </label>
+          <p className="ob-step">步驟 {step + 1} / 4</p>
 
-            <label className="block">
-              <span className="text-lg">年齡層（必填）</span>
-              <select
-                value={ageGroup}
-                onChange={(e) => setAgeGroup(e.target.value)}
-                className="mt-1 w-full rounded-xl border p-3 text-lg"
-              >
-                <option value="">請選擇</option>
-                <option value="60-65">60-65</option>
-                <option value="66-70">66-70</option>
-                <option value="71-75">71-75</option>
-                <option value="76-80">76-80</option>
-                <option value="80以上">80以上</option>
-              </select>
-            </label>
-          </>
-        )}
+          {/* === STEP 0 === */}
+            {step === 0 && (
+              <div className="step0">
 
-        {/* 步驟 2：興趣（複選） + 自我介紹 */}
-        {step === 2 && (
-          <>
-            <label className="block">
-              <span className="text-lg">興趣（可複選，必填）</span>
-              <div className="mt-2 grid grid-cols-2 gap-2">
-                {INTEREST_OPTIONS.map((opt) => {
-                  const active = selectedInterests.includes(opt);
-                  return (
+                <div className="qa-row">
+                  <img src="/name.png" className="qa-label-img" />
+
+                  <input
+                    className="ob-input"
+                    placeholder="輸入暱稱"
+                    value={displayName}
+                    onChange={(e) => setDisplayName(e.target.value)}
+                  />
+                </div>
+
+                <div className="qa-row gender-block">
+                  <img src="/gender.png" className="qa-label-img" />
+
+                  <div className="ob-row">
                     <button
-                      key={opt}
-                      type="button"
-                      onClick={() => toggleInterest(opt)}
-                      className={`rounded-2xl border px-3 py-2 text-lg text-left ${
-                        active
-                          ? "bg-green-200 border-green-500"
-                          : "bg-white"
-                      }`}
-                    >
-                      {opt}
-                    </button>
-                  );
-                })}
+                      className={`ob-select ${gender==="男" ? "ob-active-m" : ""}`}
+                      onClick={() => setGender("男")}
+                    >男</button>
+
+                    <button
+                      className={`ob-select ${gender==="女" ? "ob-active-f" : ""}`}
+                      onClick={() => setGender("女")}
+                    >女</button>
+                  </div>
+                </div>
+
               </div>
-              {selectedInterests.length > 0 && (
-                <p className="mt-2 text-sm text-neutral-600">
-                  已選擇：{selectedInterests.join("、")}
-                </p>
-              )}
-            </label>
+            )}
 
-            <label className="block">
-              <span className="text-lg">想跟大家說的話（必填）</span>
-              <textarea
-                value={bio}
-                onChange={(e) => setBio(e.target.value)}
-                className="mt-1 w-full rounded-xl border p-3 text-lg min-h-[100px]"
-                placeholder="例如：想找人一起走路運動，也喜歡聊天。"
-              />
-            </label>
-          </>
-        )}
+              {step === 1 && (
+                <div className="step1-container">
+                <div className="qa-row step1-row">
 
-        {/* 步驟 3：照片 */}
-        {step === 3 && (
-          <>
-            <label className="block">
-              <span className="text-lg">上傳大頭貼（必填）</span>
-              <input
-                type="file"
-                accept="image/*"
-                onChange={async (e) => {
-                  const f = e.target.files?.[0];
-                  if (!f) return;
-                  const form = new FormData();
-                  form.append("file", f);
-                  const r = await fetch("/api/upload", {
-                    method: "POST",
-                    body: form,
-                  });
-                  const d = await r.json();
-                  setAvatarUrl(d.url);
-                }}
-                className="mt-2"
-              />
-              {avatarUrl && (
-                <img
-                  src={avatarUrl}
-                  alt="頭貼預覽"
-                  className="w-28 h-28 rounded-full mt-3 object-cover"
-                />
-              )}
-            </label>
+                <img src="/location.png" className="qa-label-img" />
 
-            <label className="block">
-              <span className="text-lg">生活照（選填，可多張）</span>
-              <input
-                type="file"
-                accept="image/*"
-                multiple
-                onChange={async (e) => {
-                  const files = e.target.files;
-                  if (!files) return;
-                  const urls: string[] = [];
-                  for (const f of Array.from(files)) {
-                    const form = new FormData();
-                    form.append("file", f);
-                    const r = await fetch("/api/upload", {
-                      method: "POST",
-                      body: form,
-                    });
-                    const d = await r.json();
-                    urls.push(d.url);
-                  }
-                  setGalleryUrls(urls);
-                }}
-                className="mt-2"
-              />
-              {galleryUrls.length > 0 && (
-                <div className="flex flex-wrap gap-2 mt-3">
-                  {galleryUrls.map((u) => (
-                    <img
-                      key={u}
-                      src={u}
-                      className="w-20 h-20 rounded-xl object-cover"
-                    />
+                <div className="ob-grid">
+                  {CITY_OPTIONS.map((c) => (
+                    <button
+                      key={c}
+                      className={`ob-tag ${city === c ? "ob-active-city" : ""}`}
+                      onClick={() => setCity(c)}
+                    >
+                      {c}
+                    </button>
                   ))}
                 </div>
-              )}
-            </label>
-          </>
-        )}
+              </div>
 
-        {/* 按鈕區 */}
-        <div className="flex justify-between pt-2">
-          {step > 0 ? (
-            <button
-              type="button"
-              onClick={() => setStep((s) => s - 1)}
-              className="px-5 py-3 rounded-2xl bg-gray-200 text-lg"
-            >
-              上一步
-            </button>
-          ) : (
-            <div />
+              {/* === 年齡層 === */}
+              <div className="qa-row step1-row">
+                <img src="/age.png" className="qa-label-img" />
+
+                <select
+                  className="ob-input"
+                  value={ageGroup}
+                  onChange={(e) => setAgeGroup(e.target.value)}
+                >
+                  <option value="">請選擇</option>
+                  <option value="60-65">60-65</option>
+                  <option value="66-70">66-70</option>
+                  <option value="71-75">71-75</option>
+                  <option value="76-80">76-80</option>
+                  <option value="80以上">80以上</option>
+                </select>
+              </div>
+            </div>
           )}
 
-          {step < 3 ? (
-            <button
-              type="button"
-              onClick={() => canNext() && setStep((s) => s + 1)}
-              disabled={!canNext()}
-              className={`px-6 py-3 rounded-2xl text-lg ${
-                canNext()
-                  ? "bg-blue-400 text-white"
-                  : "bg-gray-300 text-gray-500 cursor-not-allowed"
-              }`}
-            >
-              下一步
-            </button>
-          ) : (
-            <button
-              type="button"
-              onClick={handleFinish}
-              disabled={!canNext()}
-              className={`px-6 py-3 rounded-2xl text-lg ${
-                canNext()
-                  ? "bg-green-400 text-white"
-                  : "bg-gray-300 text-gray-500 cursor-not-allowed"
-              }`}
-            >
-              完成並開始配對
-            </button>
-          )}
+
+          {/* === STEP 2 === */}
+            {step === 2 && (
+              <>
+                {/* 興趣 */}
+                <div className="qa-row step2-row">
+                  <img src="/interest.png" className="qa-label-img step2-label" />
+
+                  <div className="ob-grid">
+                    {INTEREST_OPTIONS.map((opt) => {
+                      const active = selectedInterests.includes(opt);
+                      return (
+                        <button
+                          key={opt}
+                          className={`ob-tag ${active ? "ob-active-hobby" : ""}`}
+                          onClick={() => toggleInterest(opt)}
+                        >
+                          {opt}
+                        </button>
+                      );
+                    })}
+                  </div>
+                </div>
+
+                {/* 自我介紹 */}
+                <div className="qa-row step2-row">
+                  <img src="/intro.png" className="qa-label-img step2-label" />
+
+                  <textarea
+                    placeholder="輸入一段話介紹自己吧（必填）"
+                    className="ob-textarea"
+                    value={bio}
+                    onChange={(e) => setBio(e.target.value)}
+                  />
+                </div>
+              </>
+            )}
+{/* === STEP 3 (照片) === */}
+{step === 3 && (
+   <div className="step3">
+    {/* 頭貼 */}
+    <div className="qa-row step3-row">
+      <img src="/head.png" className="qa-label-img" />
+
+      <input
+        type="file"
+        accept="image/*"
+        onChange={async (e) => {
+          const f = e.target.files?.[0];
+          if (!f) return;
+          const fd = new FormData();
+          fd.append("file", f);
+          const r = await fetch("/api/upload", {
+            method: "POST",
+            body: fd,
+          });
+          const d = await r.json();
+          setAvatarUrl(d.url);
+        }}
+      />
+
+      {avatarUrl && <img src={avatarUrl} className="ob-avatar" />}
+    </div>
+
+    {/* 生活照 */}
+    <div className="qa-row step3-row">
+      <img src="/life.png" className="qa-label-img" />
+
+      <input
+        type="file"
+        accept="image/*"
+        multiple
+        onChange={async (e) => {
+          const files = e.target.files;
+          if (!files) return;
+
+          const urls: string[] = [];
+          for (const f of Array.from(files)) {
+            const fd = new FormData();
+            fd.append("file", f);
+            const r = await fetch("/api/upload", {
+              method: "POST",
+              body: fd,
+            });
+            const d = await r.json();
+            urls.push(d.url);
+          }
+          setGalleryUrls(urls);
+        }}
+      />
+
+      {galleryUrls.length > 0 && (
+        <div className="ob-gallery">
+          {galleryUrls.map((u) => (
+            <img key={u} src={u} className="ob-gallery-img" />
+          ))}
         </div>
+      )}
+    </div>
+  </div>
+)}
 
-        {msg && <p className="text-neutral-700">{msg}</p>}
+
+
+  {/* === 下一步 / 完成（右側） === */}
+{/* === 下一步 / 完成 按鈕（修正版） === */}
+<div className="next-btn-row">
+
+  {/* 上一步（左邊） */}
+  {step > 0 ? (
+    <div className="prev-btn-wrap">
+      <img src="/arrow-left.png" className="prev-btn-arrow" />
+      <button className="prev-btn" onClick={() => setStep(step - 1)}>
+        上一步
+      </button>
+    </div>
+  ) : (
+    <div></div>
+  )}
+
+  {/* 下一步 or 完成（右邊） */}
+  <div className="next-btn-wrap">
+    {step < 3 ? (
+      <>
+        <button
+          disabled={!canNext()}
+          className={`next-btn ${!canNext() ? "ob-disabled" : ""}`}
+          onClick={() => canNext() && setStep(step + 1)}
+        >
+          下一步
+        </button>
+        <img src="/arrow-right.png" className="next-btn-arrow" />
+      </>
+    ) : (
+      <>
+        <button
+          disabled={!canNext()}
+          className={`next-btn ${!canNext() ? "ob-disabled" : ""}`}
+          onClick={handleFinish}
+        >
+          完成並開始配對
+        </button>
+        <img src="/arrow-right.png" className="next-btn-arrow" />
+      </>
+    )}
+  </div>
+
+
+
+
+</div>
+
+        </div>
       </div>
     </main>
   );

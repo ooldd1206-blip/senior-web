@@ -1,4 +1,3 @@
-// app/activities/page.tsx
 "use client";
 
 import { useEffect, useState } from "react";
@@ -9,27 +8,44 @@ type Activity = {
   title: string;
   description: string | null;
   date: string;
+  category: string;
   joined: boolean;
   joinedCount: number;
-  category?: string | null;
+  creator?: { displayName: string };
+  participants?: any[];
+};
+
+type MyJoin = {
+  activity: {
+    id: string;
+    title: string;
+    date: string;
+  };
 };
 
 export default function ActivitiesPage() {
   const [activities, setActivities] = useState<Activity[]>([]);
   const [msg, setMsg] = useState("");
+  const [me, setMe] = useState<string>("");
 
-  // 開活動流程的狀態
-  const [creating, setCreating] = useState(false); // 是否正在開活動
-  const [selectedCategory, setSelectedCategory] = useState<
-    "card" | "trip" | ""
-  >("");
-  const [title, setTitle] = useState("");
-  const [date, setDate] = useState("");
-  const [location, setLocation] = useState("");
-  const [desc, setDesc] = useState("");
-  const [capacity, setCapacity] = useState<number | "">("");
-  const [contactPhone, setContactPhone] = useState(""); // 🆕 主辦人電話
+  // ⭐ 篩選視窗開關
+  const [showFilter, setShowFilter] = useState(false);
 
+  // ⭐ 篩選條件
+  const [filterMain, setFilterMain] = useState<"all" | "card" | "trip">("all");
+  const [filterSub, setFilterSub] = useState<string>("all");
+  const [startDate, setStartDate] = useState<string>("");
+  const [endDate, setEndDate] = useState<string>("");
+
+  useEffect(() => {
+    fetch("/api/session")
+      .then((r) => r.json())
+      .then((d) => {
+        if (d?.user?.id) setMe(d.user.id);
+      });
+  }, []);
+
+  /* =================== 讀取所有活動 =================== */
   async function load() {
     try {
       const res = await fetch("/api/activities");
@@ -44,15 +60,15 @@ export default function ActivitiesPage() {
     load();
   }, []);
 
-  // 報名/取消報名
+  /* =================== 我要報名 / 取消報名 =================== */
   async function toggleJoin(id: string, joined: boolean) {
-    setMsg("處理中...");
     try {
       const res = await fetch("/api/join", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ activityId: id, join: !joined }),
       });
+
       const d = await res.json();
 
       if (res.ok) {
@@ -62,14 +78,12 @@ export default function ActivitiesPage() {
               ? {
                   ...a,
                   joined: !joined,
-                  joinedCount: d.joinedCount ?? a.joinedCount,
+                  joinedCount: d.joinedCount,
+                  participants: Array(d.joinedCount).fill(1),
                 }
               : a
           )
         );
-        setMsg(d.message || "");
-      } else if (res.status === 401) {
-        setMsg("請先登入後再進行報名");
       } else {
         setMsg(d.error || "操作失敗");
       }
@@ -78,251 +92,438 @@ export default function ActivitiesPage() {
     }
   }
 
-  // 建立活動
-  async function submitActivity() {
-    setMsg("");
+  /* =================== 活動詳情彈窗 =================== */
+  const [detail, setDetail] = useState<any | null>(null);
 
-    if (!selectedCategory) {
-      setMsg("請先選擇活動類型");
-      return;
-    }
-    if (!title.trim() || !date.trim() || !location.trim()) {
-      setMsg("請把「活動名稱 / 日期時間 / 地點」填完整");
-      return;
-    }
-    if (!contactPhone.trim()) {
-      setMsg("請填寫聯絡電話，報名者才能找到您");
-      return;
-    }
+  async function openDetail(id: string) {
+    const res = await fetch(`/api/activities?id=${id}`);
+    const data = await res.json();
+    setDetail(data.activity);
+  }
 
-    const res = await fetch("/api/activities", {
+  function closeDetail() {
+    setDetail(null);
+  }
+
+  /* =================== 報名列表彈窗 =================== */
+  const [myJoins, setMyJoins] = useState<MyJoin[] | null>(null);
+
+  async function openMyJoins() {
+    const res = await fetch("/api/my-joins");
+    const data = await res.json();
+    setMyJoins(data.joins || []);
+  }
+
+  function closeMyJoins() {
+    setMyJoins(null);
+  }
+
+  async function cancelJoinFromList(activityId: string) {
+    const res = await fetch("/api/join", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({
-        title,
-        description: desc,
-        date,
-        location,
-        capacity: typeof capacity === "string" ? undefined : capacity,
-        category: selectedCategory === "card" ? "找牌咖" : "旅遊/玩伴",
-        contactPhone,
-      }),
+      body: JSON.stringify({ activityId, join: false }),
     });
 
-    const data = await res.json().catch(() => ({}));
-    if (res.ok) {
-      setMsg("活動已建立！");
-      // 清空表單
-      setCreating(false);
-      setSelectedCategory("");
-      setTitle("");
-      setDate("");
-      setLocation("");
-      setDesc("");
-      setCapacity("");
-      setContactPhone("");
-      load();
-    } else {
-      setMsg(data.error || "建立活動失敗");
+    const data = await res.json();
+
+    if (!res.ok) {
+      alert(data.error || "取消失敗");
+      return;
     }
+
+    // 更新彈窗 UI
+    setMyJoins((prev) => prev!.filter((j) => j.activity.id !== activityId));
+
+    // 更新主列表 UI
+    setActivities((prev) =>
+      prev.map((a) =>
+        a.id === activityId
+          ? {
+              ...a,
+              joined: false,
+              joinedCount: data.joinedCount,
+              participants: Array(data.joinedCount).fill(1),
+            }
+          : a
+      )
+    );
+  }
+
+  /* =================== 篩選邏輯 =================== */
+  function filterActivity(a: Activity) {
+    // 大分類
+    if (filterMain === "card" && !a.category.includes("牌")) return false;
+    if (filterMain === "trip" && !a.category.includes("旅")) return false;
+
+    // 小分類
+  if (filterSub !== "all") {
+    const text = (a.title ?? "") + " " + (a.description ?? "");
+    if (!text.includes(filterSub)) return false;
+  }
+
+    // 日期
+    const activityDate = new Date(a.date);
+
+    if (startDate) {
+      const s = new Date(startDate);
+      if (activityDate < s) return false;
+    }
+    if (endDate) {
+      const e = new Date(endDate);
+      e.setHours(23, 59, 59);
+      if (activityDate > e) return false;
+    }
+
+    return true;
+  }
+
+  /* =================== 篩選重設 =================== */
+  function resetFilter() {
+    setFilterMain("all");
+    setFilterSub("all");
+    setStartDate("");
+    setEndDate("");
   }
 
   return (
-    <main
-      id="main"
-      className="min-h-screen bg-amber-50 p-6 flex flex-col items-center"
-    >
-      <h1 className="text-3xl md:text-4xl font-extrabold mb-4 text-neutral-900">
-        👥 活動交友
-      </h1>
-      <p className="text-lg text-neutral-700 mb-5">
-        可以自己開活動，也可以參加別人開的
-      </p>
-      {msg && <p className="text-blue-700 text-xl mb-4">{msg}</p>}
+    <main className="activities-new-page min-h-screen w-full flex flex-col items-center px-4 pt-[70px]">
 
-      {/* 1. 一顆很大的「我要開活動」 */}
-      {!creating ? (
-        <button
-          onClick={() => setCreating(true)}
-          className="w-full max-w-3xl mb-6 bg-pink-300 hover:bg-pink-400 text-2xl md:text-3xl font-bold rounded-2xl py-5 shadow-md"
-        >
-          ➕ 我要開活動
+      {/* 上方：報名列表 + 創建活動 + 篩選 */}
+      <div className="activities-new-header">
+        <button className="activities-new-tab" onClick={openMyJoins}>
+          報名列表
         </button>
-      ) : (
-        <div className="w-full max-w-3xl mb-6 bg-white rounded-2xl shadow p-6 space-y-5">
-          <h2 className="text-2xl font-bold text-neutral-900 mb-2">
-            選擇活動類型
-          </h2>
-          {/* 2. 兩個大選項 */}
-          <div className="flex flex-col md:flex-row gap-4">
-            <button
-              onClick={() => setSelectedCategory("card")}
-              className={`flex-1 rounded-2xl p-4 text-left text-xl border-4 ${
-                selectedCategory === "card"
-                  ? "border-pink-400 bg-pink-50"
-                  : "border-transparent bg-amber-50"
+
+        <Link href="/activities/create" className="activities-new-create">
+          創建活動
+        </Link>
+
+        <button
+          onClick={() => setShowFilter(true)}
+          className="activities-new-fliter"
+        >
+          篩選
+        </button>
+
+      </div>
+
+      {/* 活動卡片 */}
+      <div className="activities-new-list">
+        {activities.filter(filterActivity).length === 0 && (
+          <p className="text-center text-2xl text-neutral-600 mt-8">
+            目前尚未有此類活動，歡迎建立活動。
+          </p>
+        )}
+
+        {activities.filter(filterActivity).map((a) => (
+          <div key={a.id} className="activities-new-card">
+            <div
+              className={`activities-new-tag ${
+                a.category.includes("牌") ? "tag-green" : "tag-yellow"
               }`}
             >
-              <div className="text-3xl mb-2">🀄 找牌咖</div>
-              <div className="text-neutral-700">
-                麻將、橋牌、桌遊、象棋…一起玩比較好玩
-              </div>
-            </button>
-            <button
-              onClick={() => setSelectedCategory("trip")}
-              className={`flex-1 rounded-2xl p-4 text-left text-xl border-4 ${
-                selectedCategory === "trip"
-                  ? "border-green-400 bg-green-50"
-                  : "border-transparent bg-amber-50"
-              }`}
-            >
-              <div className="text-3xl mb-2">🧳 找旅伴 / 玩伴</div>
-              <div className="text-neutral-700">
-                一起散步、郊遊、看展、運動、喝茶聊天
-              </div>
-            </button>
-          </div>
-
-          {/* 3. 選完之後才出現表單 */}
-          {selectedCategory !== "" && (
-            <div className="space-y-4 pt-2">
-              <h3 className="text-xl font-semibold text-neutral-900">
-                填寫活動資訊
-              </h3>
-              <label className="block">
-                <span className="text-lg">活動名稱（必填）</span>
-                <input
-                  value={title}
-                  onChange={(e) => setTitle(e.target.value)}
-                  className="mt-1 w-full rounded-xl border p-3 text-lg"
-                  placeholder={
-                    selectedCategory === "card"
-                      ? "例如：週五晚上打麻將"
-                      : "例如：大安森林公園散步"
-                  }
-                />
-              </label>
-              <label className="block">
-                <span className="text-lg">日期時間（必填）</span>
-                <input
-                  type="datetime-local"
-                  value={date}
-                  onChange={(e) => setDate(e.target.value)}
-                  className="mt-1 w-full rounded-xl border p-3 text-lg"
-                />
-              </label>
-              <label className="block">
-                <span className="text-lg">地點（必填）</span>
-                <input
-                  value={location}
-                  onChange={(e) => setLocation(e.target.value)}
-                  className="mt-1 w-full rounded-xl border p-3 text-lg"
-                  placeholder="例如：台北市信義區市府站、或家裡、社區交誼廳…"
-                />
-              </label>
-              <label className="block">
-                <span className="text-lg">主辦人聯絡電話（必填）</span>
-                <input
-                  type="tel"
-                  value={contactPhone}
-                  onChange={(e) => setContactPhone(e.target.value)}
-                  className="mt-1 w-full rounded-xl border p-3 text-lg"
-                  placeholder="例：0912-345-678（報名者會看到）"
-                />
-              </label>
-              <label className="block">
-                <span className="text-lg">活動說明（可寫需求）</span>
-                <textarea
-                  value={desc}
-                  onChange={(e) => setDesc(e.target.value)}
-                  className="mt-1 w-full rounded-xl border p-3 text-lg min-h-[100px]"
-                  placeholder="例如：想找2位同好一起玩，程度休閒即可"
-                />
-              </label>
-              <label className="block">
-                <span className="text-lg">預計人數（可不填）</span>
-                <input
-                  type="number"
-                  min={1}
-                  value={capacity}
-                  onChange={(e) =>
-                    setCapacity(e.target.value ? Number(e.target.value) : "")
-                  }
-                  className="mt-1 w-full rounded-xl border p-3 text-lg"
-                  placeholder="例如：4"
-                />
-              </label>
-
-              <div className="flex gap-3 pt-2">
-                <button
-                  onClick={submitActivity}
-                  className="flex-1 bg-blue-400 hover:bg-blue-500 text-white rounded-2xl py-3 text-xl"
-                >
-                  建立活動
-                </button>
-                <button
-                  onClick={() => {
-                    setCreating(false);
-                    setSelectedCategory("");
-                  }}
-                  className="px-6 py-3 rounded-2xl bg-gray-200 text-lg"
-                >
-                  取消
-                </button>
-              </div>
+              {a.creator?.displayName ?? "使用者"} ＞ {a.category}
             </div>
-          )}
-        </div>
-      )}
 
-      {/* 下面是活動清單 */}
-      <div className="w-full max-w-3xl space-y-4">
-        {activities.map((a) => (
-          <div key={a.id} className="bg-white rounded-2xl shadow-md p-6">
-            <h2 className="text-2xl font-semibold mb-2 flex gap-2 items-center">
-              {a.title}
-              {a.category && (
-                <span className="text-sm bg-amber-200 rounded-full px-3 py-1">
-                  {a.category}
-                </span>
-              )}
-            </h2>
-            {a.description && (
-              <p className="text-neutral-700 mb-2">{a.description}</p>
-            )}
-            <p className="text-neutral-600 mb-1">
-              📅 {new Date(a.date).toLocaleString()}
+            <p className="activities-new-title">{a.title}</p>
+
+            <p className="text-[26px] text-neutral-700 mb-3 leading-relaxed">
+              {a.description}
             </p>
-            <p className="text-neutral-700">👤 目前參加：{a.joinedCount}</p>
 
-            <div className="mt-4 flex gap-3 flex-wrap">
+            <div className="activities-new-info-row">
+              <img src="/date.png" className="activities-new-icon" />
+              <span>{new Date(a.date).toLocaleString()}</span>
+            </div>
+
+            <div className="activities-new-info-row">
+              <img src="/people.png" className="activities-new-icon" />
+              <span>
+                目前參加：{a.participants?.length ?? a.joinedCount} 人
+              </span>
+            </div>
+
+            <div className="activities-new-actions">
               <button
                 onClick={() => toggleJoin(a.id, a.joined)}
-                className={`px-6 py-3 text-xl rounded-2xl shadow-md transition ${
-                  a.joined
-                    ? "bg-gray-300 hover:bg-gray-400"
-                    : "bg-green-300 hover:bg-green-400"
-                }`}
+                className={`activities-new-join ${a.joined ? "cancel" : ""}`}
               >
-                {a.joined ? "取消報名" : "我要參加"}
+                {a.joined ? "取消報名" : "我要報名"}
               </button>
 
-              <Link
-                href={`/activities/${a.id}`}
-                className="px-6 py-3 text-xl rounded-2xl bg-blue-300 hover:bg-blue-400 focus-visible:outline focus-visible:outline-4"
+              <button
+                onClick={() => openDetail(a.id)}
+                className="activities-new-detail"
               >
                 查看活動詳情
-              </Link>
+              </button>
             </div>
           </div>
         ))}
-
-        {activities.length === 0 && (
-          <p className="text-xl text-neutral-700 text-center">
-            目前尚無活動
-          </p>
-        )}
       </div>
+
+      {/* ========================================================= */}
+      {/* ⭐⭐ 篩選彈跳視窗 Modal ⭐⭐ */}
+      {/* ========================================================= */}
+      {showFilter && (
+        <div className="detail-mask">
+          <div className="detail-panel">
+
+            <h2 className="detail-title">活動篩選</h2>
+
+            {/* 大分類 */}
+            <div className="flex gap-3 mt-4">
+              {["all", "card", "trip"].map((t) => (
+                <button
+                  key={t}
+                  onClick={() => {
+                    setFilterMain(t as any);
+                    setFilterSub("all");
+                  }}
+                  className={`filter-btn ${
+                    filterMain === t
+                      ? t === "card"
+                        ? "active green-main"  // ⭐ 找牌咖＝綠色
+                        : "active yellow"      // ⭐ 其他維持黃色
+                      : ""
+                  }`}
+                >
+                  {t === "all"
+                    ? "全部"
+                    : t === "card"
+                    ? "找牌咖"
+                    : "找旅伴"}
+                </button>
+              ))}
+            </div>
+
+
+
+            {/* 小分類：找牌咖 */}
+            {filterMain === "card" && (
+              <div className="flex gap-3 flex-wrap mt-4">
+                {["麻將", "橋牌", "撲克牌", "象棋", "五子棋", "其他"].map((t) => (
+                  <button
+                    key={t}
+                    onClick={() => setFilterSub(t)}
+                    className={`filter-btn ${
+                      filterSub === t ? "active green-sub" : ""
+                    }`}
+                  >
+                    {t}
+                  </button>
+                ))}
+              </div>
+            )}
+
+
+
+
+            {/* 小分類：找旅伴 */}
+            {filterMain === "trip" && (
+              <div className="flex gap-3 flex-wrap mt-4">
+                {["爬山", "散步", "吃飯", "看電影", "一日遊", "其他"].map((t) => (
+                  <button
+                    key={t}
+                    onClick={() => setFilterSub(t)}
+                    className={`filter-btn ${
+                      filterSub === t ? "active yellow-sub" : ""
+                    }`}
+                  >
+                    {t}
+                  </button>
+                ))}
+              </div>
+            )}
+
+
+
+
+            {/* 日期 */}
+            <div className="mt-6">
+              <p className="text-[22px] font-semibold mb-2">依日期篩選</p>
+
+              <div className="flex gap-4">
+                <div className="flex flex-col">
+                  <span className="text-[18px] mb-1">開始日期</span>
+                  <input
+                    type="date"
+                    value={startDate}
+                    onChange={(e) => setStartDate(e.target.value)}
+                    className="px-3 py-2 rounded-xl border border-gray-400 text-[18px]"
+                  />
+                </div>
+
+                <div className="flex flex-col">
+                  <span className="text-[18px] mb-1">結束日期</span>
+                  <input
+                    type="date"
+                    value={endDate}
+                    onChange={(e) => setEndDate(e.target.value)}
+                    className="px-3 py-2 rounded-xl border border-gray-400 text-[18px]"
+                  />
+                </div>
+              </div>
+            </div>
+
+            {/* 按鈕 */}
+            <div className="detail-actions mt-8">
+              <button
+                className="detail-contact-btn bg-blue-300 hover:bg-blue-400"
+                onClick={() => setShowFilter(false)}
+              >
+                搜尋
+              </button>
+
+              <button
+                className="detail-close-btn"
+                onClick={() => {
+                  resetFilter();
+                  setShowFilter(false);
+                }}
+              >
+                重置
+              </button>
+            </div>
+
+          </div>
+        </div>
+      )}
+
+      {/* ========================================================= */}
+      {/* 活動詳情彈窗 */}
+      {/* ========================================================= */}
+      {detail && (
+        <div className="detail-mask">
+          <div className="detail-panel">
+
+            <h2 className="detail-title">{detail.title}</h2>
+            <p className="detail-subtitle">{detail.description}</p>
+
+            <div className="detail-row">
+              <img src="/date.png" className="detail-icon" />
+              <span>日期：{new Date(detail.date).toLocaleString()}</span>
+            </div>
+
+            <div className="detail-row">
+              <img src="/place.png" className="detail-icon" />
+              <span>地點：{detail.location}</span>
+            </div>
+
+            <div className="detail-row">
+              <img src="/participants.png" className="detail-icon" />
+              <span>
+                名額：{detail.joinedCount}/{detail.capacity ?? "?"}
+                {detail.capacity &&
+                  detail.joinedCount >= detail.capacity &&
+                  "（已額滿）"}
+              </span>
+            </div>
+
+            <div className="detail-row">
+              <img src="/host.png" className="detail-icon" />
+              <span>主辦人：{detail.creatorName}</span>
+            </div>
+
+            <div className="detail-row">
+              <img src="/phone.png" className="detail-icon" />
+              <span>主辦人聯絡電話：{detail.creatorPhone}</span>
+            </div>
+
+            <div className="detail-actions">
+              {me !== detail.creatorId && (
+                <button
+                  className="detail-contact-btn"
+                  onClick={async () => {
+                    const hostId = detail.creatorId;
+                    const activityId = detail.id;
+
+                    const from =
+                      detail.category?.includes("牌")
+                        ? "card"
+                        : detail.category?.includes("旅")
+                        ? "trip"
+                        : "activity";
+
+                    await fetch("/api/messages", {
+                      method: "POST",
+                      headers: { "Content-Type": "application/json" },
+                      body: JSON.stringify({
+                        receiverId: hostId,
+                        content: "您好，我想詢問活動相關問題！",
+                        source:
+                          from === "card"
+                            ? "ACTIVITY_CARD"
+                            : from === "trip"
+                            ? "ACTIVITY_TRIP"
+                            : "ACTIVITY",
+                        activityId,
+                      }),
+                    });
+
+                    window.location.href = `/chat/${hostId}?from=${from}&activityId=${activityId}`;
+                  }}
+                >
+                  聯絡主辦人
+                </button>
+              )}
+
+              <button className="detail-close-btn" onClick={closeDetail}>
+                取消
+              </button>
+            </div>
+
+          </div>
+        </div>
+      )}
+
+      {/* ========================================================= */}
+      {/* 我已報名的活動彈窗 */}
+      {/* ========================================================= */}
+      {myJoins !== null && (
+        <div className="detail-mask">
+          <div className="detail-panel">
+
+            <h2 className="detail-title">我已報名的活動</h2>
+
+            {myJoins.length === 0 && (
+              <p className="text-xl text-neutral-700 mt-4">
+                目前沒有報名任何活動
+              </p>
+            )}
+
+            {myJoins.map((item) => (
+              <div
+                key={item.activity.id}
+                className="detail-row mt-4 flex items-center justify-between"
+              >
+                <div>
+                  <p className="text-[26px]">● {item.activity.title}</p>
+                  <p className="text-[22px] text-neutral-600 ml-8">
+                    {new Date(item.activity.date).toLocaleString()}
+                  </p>
+                </div>
+
+                <button
+                  onClick={() => cancelJoinFromList(item.activity.id)}
+                  className="detail-close-btn px-6 py-2 text-[22px]"
+                >
+                  取消報名
+                </button>
+              </div>
+            ))}
+
+            <div className="detail-actions mt-6">
+              <button className="detail-close-btn" onClick={closeMyJoins}>
+                關閉
+              </button>
+            </div>
+
+          </div>
+        </div>
+      )}
+
     </main>
   );
 }

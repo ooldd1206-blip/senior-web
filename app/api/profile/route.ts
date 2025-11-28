@@ -19,54 +19,40 @@ export async function GET(req: Request) {
       interests: true,
       bio: true,
       avatarUrl: true,
-      galleryUrls: true, // ← 新增
+      galleryUrls: true,
+      onboardingCompleted: true,
     },
   });
 
   return Response.json({ user: me });
 }
 
-// 更新自己的資料（onboarding 用）
+// 🟢 修正：POST 必須傳入 req 才能讀 cookie
 export async function POST(req: Request) {
-  const session = await getSession(req);
-  if (!session) return new Response("未登入", { status: 401 });
-
-  const body = await req.json();
-
-  // 必填欄位 + 頭貼
-  const requiredFields = [
-    "displayName",
-    "gender",
-    "ageGroup",
-    "city",
-    "interests",
-    "bio",
-    "avatarUrl", // ← 頭貼必填
-  ] as const;
-
-  for (const f of requiredFields) {
-    const v = (body[f] ?? "").toString().trim();
-    if (!v) {
-      return new Response(`缺少必填欄位：${f}`, { status: 400 });
-    }
+  const session = await getSession(req);   // <-- ⭐ 必加 req
+  if (!session) {
+    return new Response(JSON.stringify({ error: "未登入" }), {
+      status: 401,
+    });
   }
 
+  const userId = session.sub;
+  const body = await req.json();
+
   const updated = await prisma.user.update({
-    where: { id: session.sub },
+    where: { id: userId },
     data: {
-      displayName: body.displayName.trim(),
-      gender: body.gender.trim(),
-      ageGroup: body.ageGroup.trim(),
-      city: body.city.trim(),
-      interests: body.interests.trim(),
-      bio: body.bio.trim(),
-      avatarUrl: body.avatarUrl.trim(),
-      // 生活照可以不傳
-      galleryUrls: Array.isArray(body.galleryUrls)
-        ? body.galleryUrls
-        : [],
+      displayName: body.displayName,
+      gender: body.gender,
+      city: body.city,
+      ageGroup: body.ageGroup,
+      interests: body.interests,
+      bio: body.bio,
+      avatarUrl: body.avatarUrl,
+      galleryUrls: body.galleryUrls,
+      onboardingCompleted: true,
     },
   });
 
-  return Response.json({ user: updated });
+  return new Response(JSON.stringify({ ok: true, user: updated }));
 }

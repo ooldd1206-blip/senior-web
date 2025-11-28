@@ -2,24 +2,20 @@
 import { prisma } from "@/lib/prisma";
 import { getSession } from "@/lib/cookies";
 
-// 取得活動（單筆 or 清單）
 export async function GET(req: Request) {
   const { searchParams } = new URL(req.url);
   const id = searchParams.get("id");
 
-  // 目前登入者（可為 null）
   const session = await getSession(req).catch(() => null);
   const userId = session?.sub ?? null;
 
-  // 🔹 單筆活動
+  // 🔹 單筆詳情（不動）
   if (id) {
     const act = await prisma.activity.findUnique({
       where: { id },
       include: {
-        participants: { select: { userId: true } },
-        creator: {
-          select: { id: true, displayName: true },
-        },
+        participants: true,
+        creator: { select: { id: true, displayName: true } },
       },
     });
 
@@ -39,28 +35,20 @@ export async function GET(req: Request) {
         category: act.category,
         joined,
         joinedCount: act.participants.length,
-
-        // 主辦人資訊
         creatorId: act.creatorId,
         creatorName: act.creator.displayName ?? "",
-        creatorPhone: act.contactPhone ?? "", // 主辦人電話
+        creatorPhone: act.contactPhone ?? "",
       },
     });
   }
 
-  // 🔹 活動清單（列表）
+  // 🔹 活動列表（要回傳正確 creator、participants）
   const list = await prisma.activity.findMany({
     orderBy: { date: "asc" },
     include: {
+      creator: { select: { displayName: true } },
+      participants: true, // ⭐ 必須加入這個
       _count: { select: { participants: true } },
-      ...(userId
-        ? {
-            participants: {
-              where: { userId },
-              select: { id: true },
-            },
-          }
-        : {}),
     },
   });
 
@@ -69,18 +57,17 @@ export async function GET(req: Request) {
     title: a.title,
     description: a.description,
     date: a.date,
-    category: a.category, // 👈 列表也帶出類型
-    joined: userId
-      ? Array.isArray((a as any).participants) &&
-        (a as any).participants.length > 0
-      : false,
+    category: a.category,
+    joined:
+      !!userId && a.participants.some((p) => p.userId === userId),
     joinedCount: a._count.participants,
+    participants: a.participants, // ⭐ 回傳全部參加者，前端才會 length 正確
+    creator: { displayName: a.creator?.displayName ?? "使用者" },
   }));
 
   return Response.json({ activities });
 }
 
-// 建立活動
 export async function POST(req: Request) {
   const session = await getSession(req);
   if (!session) {
@@ -98,15 +85,15 @@ export async function POST(req: Request) {
     contactPhone,
   } = body;
 
-  // ✅ 基本必填檢查
   if (!title?.trim() || !date || !location?.trim() || !category || !contactPhone?.trim()) {
     return new Response(
-      JSON.stringify({ error: "請把「活動名稱 / 日期時間 / 地點 / 類型 / 聯絡電話」填寫完整" }),
+      JSON.stringify({
+        error: "請把「活動名稱 / 日期時間 / 地點 / 類型 / 聯絡電話」填寫完整",
+      }),
       { status: 400 }
     );
   }
 
-  // 日期格式檢查
   const dt = new Date(date);
   if (Number.isNaN(dt.getTime())) {
     return new Response(JSON.stringify({ error: "日期時間格式不正確" }), {
@@ -114,15 +101,11 @@ export async function POST(req: Request) {
     });
   }
 
-  // 容量處理（可選）
   let cap: number | null = null;
-  if (typeof capacity === "number") {
-    cap = capacity;
-  } else if (typeof capacity === "string" && capacity.trim() !== "") {
+  if (typeof capacity === "number") cap = capacity;
+  else if (typeof capacity === "string" && capacity.trim() !== "") {
     const num = Number(capacity);
-    if (!Number.isNaN(num) && num > 0) {
-      cap = num;
-    }
+    if (!Number.isNaN(num) && num > 0) cap = num;
   }
 
   const act = await prisma.activity.create({
@@ -131,10 +114,10 @@ export async function POST(req: Request) {
       description: description?.toString().trim() || null,
       date: dt,
       location: location.trim(),
-      category: category.toString().trim(), // "找牌咖" / "旅遊/玩伴"
+      category: category.toString().trim(),
       capacity: cap,
-      creatorId: session!.sub,
-      contactPhone: contactPhone.trim(), // 👈 存主辦人電話
+      creatorId: session.sub,
+      contactPhone: contactPhone.trim(),
     },
   });
 
