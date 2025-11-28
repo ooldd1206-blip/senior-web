@@ -1,6 +1,6 @@
+"use server";
 export const runtime = "nodejs";
 
-"use server";
 
 
 import nodemailer from "nodemailer";
