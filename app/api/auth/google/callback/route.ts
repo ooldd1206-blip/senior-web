@@ -16,7 +16,7 @@ export async function GET(req: Request) {
       return NextResponse.redirect(APP_URL);
     }
 
-    // 1️⃣ 換 token
+    // 1️⃣ 交換 Access Token
     const tokenRes = await fetch("https://oauth2.googleapis.com/token", {
       method: "POST",
       headers: { "Content-Type": "application/x-www-form-urlencoded" },
@@ -30,47 +30,61 @@ export async function GET(req: Request) {
     });
 
     const tokenData = await tokenRes.json();
+
+    if (!tokenData.access_token) {
+      console.error("Google Token Error:", tokenData);
+      return new NextResponse("Google Login Error", { status: 500 });
+    }
+
     const access_token = tokenData.access_token;
 
-    // 2️⃣ 拿 Google 使用者資料
-    const userRes = await fetch("https://www.googleapis.com/oauth2/v2/userinfo", {
+    // 2️⃣ 取得 Google 使用者資料 (v3)
+    const userRes = await fetch("https://www.googleapis.com/oauth2/v3/userinfo", {
       headers: { Authorization: `Bearer ${access_token}` },
     });
 
     const profile = await userRes.json();
+
     const email = profile.email;
     const name = profile.name;
 
-    // 3️⃣ 查 DB
+    // 沒有 email 則拒絕（Google 有些帳號沒公開 email）
+    if (!email) {
+      console.error("Google profile 沒有 email:", profile);
+      return new NextResponse("Google Login Error: No email", { status: 400 });
+    }
+
+    // 3️⃣ 查詢 DB
     let user = await prisma.user.findUnique({ where: { email } });
 
     const firstLogin = !user;
 
-    // 4️⃣ 沒有 → 自動註冊
+    // 4️⃣ 若無帳號 → 自動註冊
     if (!user) {
+      const safeName = name || email.split("@")[0];
+
       user = await prisma.user.create({
         data: {
           email,
-          displayName: name || email.split("@")[0],
+          displayName: safeName,
           passwordHash: "",
           emailVerifiedAt: new Date(),
         },
       });
     }
 
-    // 5️⃣ Session
+    // 5️⃣ 設定 Session Cookie
     await setSessionCookie({
       sub: user.id,
       email: user.email,
       displayName: user.displayName ?? "",
     });
 
-    // 6️⃣ 第一次登入 → onboarding
+    // 6️⃣ 導向
     if (firstLogin) {
       return NextResponse.redirect(`${APP_URL}/onboarding`);
     }
 
-    // ✔ 已登入過 → home
     return NextResponse.redirect(`${APP_URL}/home`);
 
   } catch (err) {
