@@ -1,10 +1,13 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, Suspense } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import Image from "next/image";
 
-export default function AuthPage() {
+// 告訴 Next.js：這頁不要做預先靜態輸出，改用動態
+export const dynamic = "force-dynamic";
+
+function AuthPageContent() {
   const [mode, setMode] = useState<"login" | "register">("login");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
@@ -65,7 +68,6 @@ export default function AuthPage() {
 
   return (
     <main className="bg-grid">
-
       {/* ======================
           註冊／登入便利貼
       ====================== */}
@@ -86,7 +88,6 @@ export default function AuthPage() {
           </h1>
 
           <form onSubmit={handleSubmit} className="register-form">
-
             {mode === "register" && (
               <div className="row">
                 <label>暱稱</label>
@@ -141,9 +142,7 @@ export default function AuthPage() {
               </button>
             </div>
 
-            {message && (
-              <p className="register-message">{message}</p>
-            )}
+            {message && <p className="register-message">{message}</p>}
 
             {/* 下面的切換按鈕 */}
             <button
@@ -154,14 +153,20 @@ export default function AuthPage() {
               }}
               className="mt-4 text-blue-600 underline text-lg"
             >
-              {mode === "login"
-                ? "沒有帳號？註冊一個"
-                : "已有帳號？登入"}
+              {mode === "login" ? "沒有帳號？註冊一個" : "已有帳號？登入"}
             </button>
-
           </form>
         </div>
       </div>
     </main>
+  );
+}
+
+// default export：外層用 Suspense 包住，符合 Next.js 要求
+export default function AuthPage() {
+  return (
+    <Suspense fallback={<main className="bg-grid">載入中...</main>}>
+      <AuthPageContent />
+    </Suspense>
   );
 }
