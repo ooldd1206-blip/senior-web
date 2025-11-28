@@ -1,9 +1,12 @@
 "use client";
 
+import { Suspense, useState } from "react";
 import { useSearchParams } from "next/navigation";
-import { useState } from "react";
 
-export default function ResetPasswordPage() {
+// ⭐ 必加：告訴 Next.js 這頁不能預先渲染（避免 prerender fail）
+export const dynamic = "force-dynamic";
+
+function ResetPasswordContent() {
   const params = useSearchParams();
   const token = params.get("token");
 
@@ -51,5 +54,14 @@ export default function ResetPasswordPage() {
         <p className="mt-4 text-neutral-700">{msg}</p>
       </form>
     </main>
+  );
+}
+
+// ⭐ 外層 Suspense：Next.js 15 強制規定
+export default function ResetPasswordPage() {
+  return (
+    <Suspense fallback={<div className="p-10 text-center">載入中...</div>}>
+      <ResetPasswordContent />
+    </Suspense>
   );
 }
