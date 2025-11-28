@@ -86,8 +86,12 @@ export async function POST(req: Request) {
         { error: "請先到 Email 完成驗證" },
         { status: 403 }
       );
+if (!user.passwordHash) {
+  return NextResponse.json({ error: "此帳號未使用密碼登入（Google 登入用戶）" }, { status: 400 });
+}
 
-    const ok = await bcrypt.compare(password, user.passwordHash);
+const ok = await bcrypt.compare(password, user.passwordHash);
+
     if (!ok) return NextResponse.json({ error: "密碼錯誤" }, { status: 401 });
 
     await setSessionCookie({
