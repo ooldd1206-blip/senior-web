@@ -2700,3 +2700,64 @@ body {
     top: 50%;
   }
 }
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+/* ===== 全站 RWD 基礎設定 ===== */
+
+/* 讓所有圖片自適應版面 */
+img {
+  max-width: 100%;
+  height: auto;
+  object-fit: cover;
+}
+
+/* 讓所有版面不要有水平卷軸 */
+html, body {
+  overflow-x: hidden;
+}
+
+/* 通用容器 - 手機版預設全寬 */
+.container {
+  width: 100%;
+  max-width: 1200px;
+  margin: 0 auto;
+  padding: 0 16px;
+}
+
+/* 小字體設備（iPhone SE / 360px 以下） */
+@media (max-width: 360px) {
+  html {
+    font-size: 14px;
+  }
+}
+
+/* 中型手機（390px ~ 768px） */
+@media (max-width: 768px) {
+  .hide-mobile {
+    display: none !important;
+  }
+}
+
+/* 桌機版隱藏 mobile 導覽列 */
+@media (min-width: 769px) {
+  .hide-desktop {
+    display: none !important;
+  }
+}
