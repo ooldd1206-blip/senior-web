@@ -122,8 +122,14 @@ export default function ChatListPage() {
     if (!me) return;
 
     if (!socket) {
-      socket = io("https://senior-web.onrender.com");
+      socket = io("https://senior-web.onrender.com", {
+        path: "/socket.io",
+        transports: ["websocket", "polling"],
+        reconnectionAttempts: 10,
+        reconnectionDelay: 1000,
+      });
     }
+
 
     socket.emit("register-user", { userId: me });
 
