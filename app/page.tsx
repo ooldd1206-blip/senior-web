@@ -60,8 +60,6 @@ export default function Home() {
                 className="facebook-register-btn"
                 onClick={() => window.location.href = "/api/auth/facebook"}
               >
-                <Image src="/facebook-logo.png" width={36} height={36} alt="Facebook icon" />
-                <span>使用 Facebook 登入</span>
               </button>
 
 
