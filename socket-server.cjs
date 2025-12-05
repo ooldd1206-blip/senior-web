@@ -6,7 +6,7 @@ const httpServer = http.createServer();
 
 const io = new Server(httpServer, {
   cors: {
-    origin: ["http://localhost:3000", "http://localhost:3001"],
+    origin: ["https://seniorweb-five.vercel.app"],
     methods: ["GET", "POST"],
   },
 });
