@@ -44,24 +44,31 @@ io.on("connection", (socket) => {
   });
 
   // 送訊息
-  socket.on("send-message", (payload) => {
-    const { from, to, content } = payload;
-    const room = roomIdFor(from, to);
+// ⭐ send-message（支援 senderId / receiverId）
+socket.on("send-message", (payload) => {
+  const from = payload.from || payload.senderId;
+  const to = payload.to || payload.receiverId;
 
-    const msg = {
-      from,
-      to,
-      content,
-      createdAt: new Date().toISOString(),
-    };
+  const msg = {
+    from,
+    to,
+    content: payload.content,
+    imageUrl: payload.imageUrl,
+    createdAt: payload.createdAt || new Date().toISOString(),
+  };
 
-    // 聊天室內其他人收到
-    socket.to(room).emit("new-message", msg);
+  const room = roomIdFor(from, to);
 
-    // 聊天列表更新（對方 & 自己）
-    io.to(`user-${to}`).emit("notify-message", msg);
-    io.to(`user-${from}`).emit("notify-message", msg);
-  });
+  console.log("📨 send-message:", msg);
+
+  // 聊天室即時訊息
+  socket.to(room).emit("new-message", msg);
+
+  // 更新兩人的聊天列表
+  io.to(`user-${to}`).emit("notify-message", msg);
+  io.to(`user-${from}`).emit("notify-message", msg);
+});
+
 
   // 已讀
   socket.on("read-chat", ({ me, other }) => {
