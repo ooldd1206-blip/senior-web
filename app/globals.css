@@ -2540,6 +2540,9 @@ body {
   padding: 30px;
   border-radius: 30px;
   box-shadow: 0px 5px 18px rgba(0,0,0,0.2);
+  max-height: 90vh;   /* 限制高度不會超過螢幕 */
+overflow-y: auto;   /* 高度超過時自動出現滾輪 */
+
 }
 
 .modal-title {
