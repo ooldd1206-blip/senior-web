@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import React, { useEffect, useState } from "react";
 
 type Profile = {
   displayName: string;
@@ -23,22 +23,13 @@ const CITY_OPTIONS = [
 
 /* 年齡層 */
 const AGE_OPTIONS = [
-  "50-55","55-60","60-65","65-70","70-75","75+" 
-];
-
-/* 興趣 (給下拉用，亦可換成 checkbox 組合) */
-const INTEREST_OPTIONS = [
-  "散步","做菜","烘焙","看電影","追劇","登山","慢跑",
-  "旅遊","桌遊","唱歌","跳舞"
+  "50-55","55-60","60-65","65-70","70-75","75+"
 ];
 
 async function logout() {
   await fetch("/api/logout", { method: "POST" });
-
-  // 跳回登入頁
   window.location.href = "/";
 }
-
 
 export default function ProfilePage() {
   const [profile, setProfile] = useState<Profile>({
@@ -63,7 +54,7 @@ export default function ProfilePage() {
       .then((r) => (r.status === 401 ? null : r.json()))
       .then((d) => {
         if (d?.user) {
-          const p = {
+          const p: Profile = {
             displayName: d.user.displayName || "",
             gender: d.user.gender || "",
             ageGroup: d.user.ageGroup || "",
@@ -77,6 +68,9 @@ export default function ProfilePage() {
           };
           setProfile(p);
         }
+      })
+      .catch((err) => {
+        console.error("fetch profile error", err);
       });
   }, []);
 
@@ -88,14 +82,14 @@ export default function ProfilePage() {
     if (!p.city.trim()) return "請選擇居住地";
     if (!p.interests.trim()) return "請填寫興趣";
     if (!p.bio.trim()) return "請填寫自我介紹";
-    if (!p.avatarUrl?.trim()) return "請填寫頭貼網址";
+    if (!p.avatarUrl?.trim()) return "請填寫頭貼"; // 若想改成非必要，可移除此行
     return "";
   }
 
   // 儲存資料
   async function saveEdit() {
     if (!editData) return;
-
+    setError("");
     const v = validate(editData);
     if (v) return setError(v);
 
@@ -104,94 +98,91 @@ export default function ProfilePage() {
       galleryUrls: editData.galleryUrls?.filter((x) => x.trim() !== "") ?? [],
     };
 
-    const res = await fetch("/api/profile", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify(payload),
-    });
+    try {
+      const res = await fetch("/api/profile", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(payload),
+      });
 
-    if (res.ok) {
-      setProfile(editData);
-      setMsg("已儲存");
-      setOpenEdit(false);
-    } else {
-      setError("儲存失敗");
+      if (res.ok) {
+        setProfile(editData);
+        setMsg("已儲存");
+        setOpenEdit(false);
+      } else {
+        const text = await res.text();
+        console.error("save failed", text);
+        setError("儲存失敗");
+      }
+    } catch (err) {
+      console.error(err);
+      setError("儲存失敗 (network)");
     }
+  }
+
+  // 檔案轉 Base64 helper（回傳 Promise<string>）
+  function fileToDataUrl(file: File): Promise<string> {
+    return new Promise((resolve, reject) => {
+      const reader = new FileReader();
+      reader.onload = () => resolve(reader.result as string);
+      reader.onerror = reject;
+      reader.readAsDataURL(file);
+    });
   }
 
   return (
     <main className="profile-bg">
-
-      {/* ======= 大框 ======= */}
       <div className="profile-big-card">
-
-        {/* ===== 頭貼 / 名字 / 性別 / 修改資料 ===== */}
         <div className="flex flex-col items-center py-10">
-
           <img
             src={profile.avatarUrl || "/default-avatar.png"}
             className="profile-avatar"
+            alt="avatar"
           />
 
           <div className="flex items-center gap-3 mt-6">
             <p className="profile-name">{profile.displayName}</p>
 
             {profile.gender === "女" && (
-              <img src="/female.png" className="w-[36px] h-[36px]" />
+              <img src="/female.png" className="w-[36px] h-[36px]" alt="female" />
             )}
             {profile.gender === "男" && (
-              <img src="/male.png" className="w-[36px] h-[36px]" />
+              <img src="/male.png" className="w-[36px] h-[36px]" alt="male" />
             )}
           </div>
 
-          {/* 修改資料按鈕 + 登出按鈕 */}
           <div className="flex gap-4 mt-4">
-
-            {/* 修改資料 */}
             <button
               onClick={() => {
                 setEditData(profile);
                 setOpenEdit(true);
+                setError("");
               }}
               className="profile-edit-btn"
             >
-              <img src="/edit.png" className="w-[22px] h-[22px]" />
+              <img src="/edit.png" className="w-[22px] h-[22px]" alt="edit" />
               修改資料
             </button>
 
-            {/* 登出 */}
-            <button
-              onClick={logout}
-              className="logout-btn"
-            >
-              登出
-            </button>
-
+            <button onClick={logout} className="logout-btn">登出</button>
           </div>
-
         </div>
 
-        {/* ===== 灰底下半部 ===== */}
         <div className="profile-inner-box">
-
-          {/* 左：生活照 */}
           <div className="profile-left">
             <p className="profile-left-title">生活照</p>
 
             {profile.galleryUrls && profile.galleryUrls.length > 0 ? (
-              profile.galleryUrls.map((url, i) => (
-                <img
-                  key={i}
-                  src={url}
-                  className="profile-gallery-img"
-                />
-              ))
+              <div className="flex gap-2 flex-wrap">
+                {profile.galleryUrls.map((url, i) => (
+                  <img key={i} src={url} className="profile-gallery-img" alt={`gallery-${i}`} />
+                ))}
+              </div>
             ) : (
               <div className="profile-gallery-placeholder" />
             )}
           </div>
 
-          {/* 右：資料 */}
           <div className="profile-info">
             <p><span>性別：</span>{profile.gender}</p>
             <p><span>年齡層：</span>{profile.ageGroup}</p>
@@ -199,15 +190,12 @@ export default function ProfilePage() {
             <p><span>興趣：</span>{profile.interests}</p>
             <p><span>自我介紹：</span>{profile.bio}</p>
           </div>
-
         </div>
       </div>
 
-      {/* ========== 修改資料彈跳視窗 ========== */}
       {openEdit && editData && (
         <div className="profile-modal-mask">
           <div className="profile-modal">
-
             <h2 className="modal-title">修改資料</h2>
 
             {/* 顯示名稱 */}
@@ -247,9 +235,7 @@ export default function ProfilePage() {
               >
                 <option value="">請選擇</option>
                 {AGE_OPTIONS.map((age) => (
-                  <option key={age} value={age}>
-                    {age}
-                  </option>
+                  <option key={age} value={age}>{age}</option>
                 ))}
               </select>
             </div>
@@ -265,9 +251,7 @@ export default function ProfilePage() {
               >
                 <option value="">請選擇</option>
                 {CITY_OPTIONS.map((city) => (
-                  <option key={city} value={city}>
-                    {city}
-                  </option>
+                  <option key={city} value={city}>{city}</option>
                 ))}
               </select>
             </div>
@@ -291,39 +275,87 @@ export default function ProfilePage() {
                 onChange={(e) =>
                   setEditData({ ...editData, bio: e.target.value })
                 }
-              ></textarea>
+              />
             </div>
 
-            {/* 頭貼網址 */}
-              <div className="modal-field">
-                <label>頭貼</label>
+            {/* 頭貼預覽 + 上傳 */}
+            <div className="modal-field">
+              <label>頭貼</label>
 
-                {/* 預覽區 */}
-                <img
-                  src={editData.avatarUrl || "/default-avatar.png"}
-                  className="w-[120px] h-[120px] rounded-full object-cover border mb-3"
-                />
+              <img
+                src={editData.avatarUrl || "/default-avatar.png"}
+                className="w-[120px] h-[120px] rounded-full object-cover border mb-3"
+                alt="avatar-preview"
+              />
 
-                {/* 檔案上傳按鈕 */}
-                <input
-                  type="file"
-                  accept="image/*"
-                  onChange={(e) => {
-                    const file = e.target.files?.[0];
-                    if (!file) return;
+              <input
+                type="file"
+                accept="image/*"
+                onChange={async (e: React.ChangeEvent<HTMLInputElement>) => {
+                  const file = e.target.files?.[0];
+                  if (!file) return;
+                  try {
+                    const dataUrl = await fileToDataUrl(file);
+                    setEditData({ ...editData, avatarUrl: dataUrl });
+                  } catch (err) {
+                    console.error(err);
+                  }
+                }}
+              />
+            </div>
 
-                    const reader = new FileReader();
-                    reader.onload = () => {
-                      setEditData({
-                        ...editData,
-                        avatarUrl: reader.result as string, // Base64 preview
-                      });
-                    };
-                    reader.readAsDataURL(file);
-                  }}
-                />
+            {/* 生活照（多張） */}
+            <div className="modal-field">
+              <label>生活照</label>
+
+              <div className="flex flex-wrap gap-3 mb-3">
+                {editData.galleryUrls && editData.galleryUrls.length > 0 ? (
+                  editData.galleryUrls.map((url, index) => (
+                    <div key={index} className="relative">
+                      <img
+                        src={url}
+                        className="w-[100px] h-[100px] object-cover rounded-md border"
+                        alt={`gallery-${index}`}
+                      />
+                      <button
+                        onClick={() => {
+                          const newList = (editData.galleryUrls || []).filter(
+                            (_, i) => i !== index
+                          );
+                          setEditData({ ...editData, galleryUrls: newList });
+                        }}
+                        className="absolute top-0 right-0 bg-red-500 text-white text-xs px-1 rounded"
+                        type="button"
+                      >
+                        X
+                      </button>
+                    </div>
+                  ))
+                ) : (
+                  <p className="text-gray-500">目前沒有生活照</p>
+                )}
               </div>
 
+              <input
+                type="file"
+                accept="image/*"
+                multiple
+                onChange={async (e: React.ChangeEvent<HTMLInputElement>) => {
+                  const files = e.target.files;
+                  if (!files || files.length === 0) return;
+                  const arr = Array.from(files);
+                  try {
+                    const dataUrls = await Promise.all(arr.map(fileToDataUrl));
+                    setEditData({
+                      ...editData,
+                      galleryUrls: [...(editData.galleryUrls || []), ...dataUrls],
+                    });
+                  } catch (err) {
+                    console.error(err);
+                  }
+                }}
+              />
+            </div>
 
             {/* 按鈕 */}
             <div className="modal-btns">
@@ -332,12 +364,10 @@ export default function ProfilePage() {
             </div>
 
             {error && <p className="modal-error">{error}</p>}
-
+            {msg && <p className="modal-msg">{msg}</p>}
           </div>
         </div>
       )}
-
-
     </main>
   );
 }
