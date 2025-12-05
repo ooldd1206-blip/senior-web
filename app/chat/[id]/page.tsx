@@ -113,7 +113,7 @@ useEffect(() => {
 
   // 初始化一次就好，不要把 socket 當作 useEffect 的回傳值
   if (!socket) {
-    socket = io("http://localhost:4000");
+    socket = io("https://seniorweb-five.vercel.app");
   }
 
   socket.emit("join-chat", { me, other: otherId });
