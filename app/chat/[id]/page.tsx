@@ -120,8 +120,14 @@ export default function ChatRoomPage() {
 
     // 初始化一次就好
     if (!socket) {
-      socket = io("https://senior-web.onrender.com");
+      socket = io("https://senior-web.onrender.com", {
+        path: "/socket.io",
+        transports: ["websocket", "polling"],
+        reconnectionAttempts: 10,
+        reconnectionDelay: 1000,
+      });
     }
+
 
     socket.emit("join-chat", { me, other: otherId });
 
