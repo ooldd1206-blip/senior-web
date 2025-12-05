@@ -56,6 +56,15 @@ export default function Home() {
                 <span>使用 Google 登入</span>
               </button>
 
+              <button
+                className="facebook-register-btn"
+                onClick={() => window.location.href = "/api/auth/facebook"}
+              >
+                <Image src="/facebook-logo.png" width={36} height={36} alt="Facebook icon" />
+                <span>使用 Facebook 登入</span>
+              </button>
+
+
               <button className="home-back-btn" onClick={() => setShowLogin(false)}>
                 <Image src="/black-arrow.png" width={130} height={130} alt="back" className="home-back-arrow"/>
                 <div className="home-back-label">回首頁</div>
