@@ -112,9 +112,10 @@ useEffect(() => {
   if (!me) return;
 
   // 初始化一次就好，不要把 socket 當作 useEffect 的回傳值
-  if (!socket) {
-    socket = io("http://localhost:4000");
-  }
+if (!socket)
+  socket = io("https://senior-web.onrender.com", {
+    transports: ["websocket"],
+  });
 
   socket.emit("join-chat", { me, other: otherId });
 

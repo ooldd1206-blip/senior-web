@@ -111,7 +111,11 @@ export default function ChatListPage() {
   useEffect(() => {
     if (!me) return;
 
-    if (!socket) socket = io("http://localhost:4000");
+    if (!socket)
+      socket = io("https://senior-web.onrender.com", {
+        transports: ["websocket"],   // 強制使用 WebSocket，避免 polling 錯誤
+      });
+
 
     socket.emit("register-user", { userId: me });
 
