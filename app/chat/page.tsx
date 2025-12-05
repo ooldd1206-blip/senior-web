@@ -111,7 +111,7 @@ export default function ChatListPage() {
   useEffect(() => {
     if (!me) return;
 
-    if (!socket) socket = io("https://seniorweb-five.vercel.app");
+    if (!socket) socket = io("https://senior-web.onrender.com");
 
     socket.emit("register-user", { userId: me });
 
