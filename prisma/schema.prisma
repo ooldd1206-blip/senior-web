@@ -41,6 +41,8 @@ model User {
   bio          String?
   avatarUrl    String?
   galleryUrls  String[] @default([])
+  chatsA Chat[] @relation("ChatUserA")
+  chatsB Chat[] @relation("ChatUserB")
 }
 
 
@@ -108,4 +110,23 @@ model Message {
 
   sender      User     @relation("SentMessages", fields: [senderId], references: [id])
   receiver    User     @relation("ReceivedMessages", fields: [receiverId], references: [id])
+}
+
+model Chat {
+  id        String   @id @default(cuid())
+  createdAt DateTime @default(now())
+
+  // 雙方使用者
+  userA     String
+  userB     String
+
+  source    ChatSource?  // MATCH / ACTIVITY_CARD / ACTIVITY_TRIP  
+  lastMessage String?
+  lastTime    DateTime? @default(now())
+
+  // Prisma 關聯
+  UserA User @relation("ChatUserA", fields: [userA], references: [id])
+  UserB User @relation("ChatUserB", fields: [userB], references: [id])
+
+  @@unique([userA, userB]) // 防止重複聊天室
 }
