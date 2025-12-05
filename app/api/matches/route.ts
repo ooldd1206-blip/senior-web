@@ -94,28 +94,53 @@ export async function POST(req: Request) {
         status: 400,
       });
     }
+// 找「對方喜歡我」→ 判斷是否互相喜歡
+const reverse = await prisma.match.findFirst({
+  where: {
+    likerId: likedId,
+    likedId: session.sub,
+  },
+});
 
-    // 檢查對方是否也按過「喜歡」我
-    const existing = await prisma.match.findFirst({
-      where: { likerId: likedId, likedId: session.sub },
-    });
+// 建立「我喜歡對方」的紀錄
+const match = await prisma.match.create({
+  data: {
+    likerId: session.sub,
+    likedId,
+    isMutual: !!reverse,
+  },
+});
 
-    // 建立我按讚的紀錄
-    const match = await prisma.match.create({
+// 如果對方也有按我 → 成功互相喜歡 → 建立聊天室
+if (reverse) {
+  await prisma.match.update({
+    where: { id: reverse.id },
+    data: { isMutual: true },
+  });
+
+  // 檢查是否已有聊天室
+  const existingChat = await prisma.chat.findFirst({
+    where: {
+      OR: [
+        { userA: session.sub, userB: likedId },
+        { userA: likedId, userB: session.sub },
+      ],
+    },
+  });
+
+  // 沒有聊天室 → 建立新的
+  if (!existingChat) {
+    await prisma.chat.create({
       data: {
-        likerId: session.sub,
-        likedId,
-        isMutual: !!existing,
+        userA: session.sub,
+        userB: likedId,
+        source: "MATCH",
       },
     });
+  }
+}
 
-    // 如果對方也喜歡我 → 更新為互相配對
-    if (existing) {
-      await prisma.match.update({
-        where: { id: existing.id },
-        data: { isMutual: true },
-      });
-    }
+
 
     return Response.json({ match });
   } catch (err: any) {
