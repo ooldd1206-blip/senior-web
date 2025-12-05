@@ -10,79 +10,80 @@ export async function GET(req: Request) {
 
   const me = session.sub;
 
-  // ① 先取得「所有跟我相關的聊天室」
-  const chats = await prisma.chat.findMany({
+  // 把所有「跟我有關的訊息」抓出來
+  const messages = await prisma.message.findMany({
     where: {
-      OR: [
-        { userA: me },
-        { userB: me }
-      ]
+      OR: [{ senderId: me }, { receiverId: me }],
     },
-    orderBy: { createdAt: "asc" }
+    orderBy: { createdAt: "asc" }, // 由舊到新，最後一筆就是最新
   });
 
-  // ✨ 若沒有聊天室，直接回空陣列（代表還沒有配對成功）
-  if (chats.length === 0) {
+  if (messages.length === 0) {
     return Response.json({ chats: [] });
   }
 
-  // ② 用來存每個聊天室合併後的資訊
-  const results: any[] = [];
+  // 每個對象的「最後一則訊息」 & 「未讀數」
+  type Meta = {
+    lastMessage: string;
+    lastTime: Date;
+    source: string | null;
+    unreadCount: number;
+  };
 
-  for (const c of chats) {
-    const otherId = c.userA === me ? c.userB : c.userA;
+  const map = new Map<string, Meta>();
 
-    // 找最新訊息（如果有）
-    const lastMsg = await prisma.message.findFirst({
-      where: {
-        OR: [
-          { senderId: me, receiverId: otherId },
-          { senderId: otherId, receiverId: me }
-        ],
-      },
-      orderBy: { createdAt: "desc" }
-    });
+  for (const m of messages) {
+    const otherId = m.senderId === me ? m.receiverId : m.senderId;
 
-    // 查對方資料
-    const other = await prisma.user.findUnique({
-      where: { id: otherId },
-      select: {
-        id: true,
-        displayName: true,
-        email: true,
-        avatarUrl: true
-      }
-    });
+    const prev = map.get(otherId) ?? {
+      lastMessage: "",
+      lastTime: new Date(0),
+      source: null,
+      unreadCount: 0,
+    };
 
-    results.push({
-      id: other?.id,
-      displayName: other?.displayName,
-      email: other?.email,
-      avatarUrl: other?.avatarUrl,
-
-      // 來源（MATCH / ACTIVITY…）
-      source: c.source,
-
-      // 如果有聊天紀錄 → 用紀錄  
-      // 如果沒有聊天 → 顯示尚未開始聊天
-      lastMessage: lastMsg?.content ?? "（尚未開始聊天）",
-      lastTime: (lastMsg?.createdAt ?? c.createdAt).toISOString(),
-
-      // 計算未讀訊息數
-      unreadCount: await prisma.message.count({
-        where: {
-          receiverId: me,
-          senderId: otherId,
-          read: false
-        }
-      })
+    // 最新訊息覆蓋
+    map.set(otherId, {
+      lastMessage: m.content,
+      lastTime: m.createdAt,
+      source: m.source ?? prev.source, // 優先用較新的，有就保留
+      unreadCount:
+        prev.unreadCount +
+        (m.receiverId === me && !m.read ? 1 : 0),
     });
   }
 
-  // ③ 最後依照時間排序（新 → 舊）
-  results.sort(
-    (a, b) => new Date(b.lastTime).getTime() - new Date(a.lastTime).getTime()
-  );
+  const userIds = Array.from(map.keys());
 
-  return Response.json({ chats: results });
+  const users = await prisma.user.findMany({
+    where: { id: { in: userIds } },
+    select: {
+      id: true,
+      displayName: true,
+      email: true,
+      avatarUrl: true,
+    },
+  });
+
+  const chats = users
+    .map((u) => {
+      const meta = map.get(u.id)!;
+      return {
+        id: u.id,
+        displayName: u.displayName,
+        email: u.email,
+        avatarUrl: u.avatarUrl,
+        lastMessage: meta.lastMessage,
+        lastTime: meta.lastTime,
+        unreadCount: meta.unreadCount,
+        source: meta.source, // "MATCH" | "ACTIVITY_CARD" | "ACTIVITY_TRIP" | null
+      };
+    })
+    // 依照最後聊天時間排序（新 → 舊）
+    .sort(
+      (a, b) =>
+        new Date(b.lastTime).getTime() - new Date(a.lastTime).getTime()
+    );
+
+  return Response.json({ chats });
 }
