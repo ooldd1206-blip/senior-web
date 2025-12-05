@@ -1,5 +1,6 @@
 import { prisma } from "@/lib/prisma";
 import { getSession } from "@/lib/cookies";
+import { ChatSource } from "@prisma/client";
 
 /**
  * GET /api/matches
@@ -83,11 +84,16 @@ export async function POST(req: Request) {
   try {
     const session = await getSession(req);
     if (!session) {
-      return new Response(JSON.stringify({ error: "未登入" }), { status: 401 });
+      return new Response(JSON.stringify({ error: "未登入" }), {
+        status: 401,
+      });
     }
 
+    const me = session.sub;
+
     const body = await req.json().catch(() => ({}));
-    const likedId = typeof body?.likedId === "string" ? body.likedId : undefined;
+    const likedId =
+      typeof body?.likedId === "string" ? body.likedId : undefined;
 
     if (!likedId) {
       return new Response(JSON.stringify({ error: "缺少 likedId" }), {
@@ -95,26 +101,77 @@ export async function POST(req: Request) {
       });
     }
 
-    // 檢查對方是否也按過「喜歡」我
-    const existing = await prisma.match.findFirst({
-      where: { likerId: likedId, likedId: session.sub },
-    });
+    if (likedId === me) {
+      return new Response(JSON.stringify({ error: "不能喜歡自己" }), {
+        status: 400,
+      });
+    }
 
-    // 建立我按讚的紀錄
-    const match = await prisma.match.create({
-      data: {
-        likerId: session.sub,
-        likedId,
-        isMutual: !!existing,
+    // 1️⃣ 對方是否已經按過「喜歡我」
+    const reverse = await prisma.match.findFirst({
+      where: {
+        likerId: likedId,
+        likedId: me,
       },
     });
 
-    // 如果對方也喜歡我 → 更新為互相配對
-    if (existing) {
+    // 2️⃣ 我以前有沒有按過他
+    const mine = await prisma.match.findFirst({
+      where: {
+        likerId: me,
+        likedId,
+      },
+    });
+
+    let match;
+
+    if (mine) {
+      // 之前就按過 → 更新 isMutual（有沒有互相喜歡）
+      match = await prisma.match.update({
+        where: { id: mine.id },
+        data: { isMutual: !!reverse },
+      });
+    } else {
+      // 第一次按喜歡 → 建立
+      match = await prisma.match.create({
+        data: {
+          likerId: me,
+          likedId,
+          isMutual: !!reverse,
+        },
+      });
+    }
+
+    // 3️⃣ 如果對方也喜歡我 → 把對方那筆也標成 isMutual = true
+    if (reverse && !reverse.isMutual) {
       await prisma.match.update({
-        where: { id: existing.id },
+        where: { id: reverse.id },
         data: { isMutual: true },
       });
+    }
+
+    // 4️⃣ 如果已經互相喜歡（reverse 存在）→ 確保有一則 MATCH 訊息
+    if (reverse) {
+      const existingMsg = await prisma.message.findFirst({
+        where: {
+          OR: [
+            { senderId: me, receiverId: likedId },
+            { senderId: likedId, receiverId: me },
+          ],
+        },
+      });
+
+      if (!existingMsg) {
+        await prisma.message.create({
+          data: {
+            senderId: me,
+            receiverId: likedId,
+            content: "（開始聊天吧！）",
+            read: false,
+            source: ChatSource.MATCH,
+          },
+        });
+      }
     }
 
     return Response.json({ match });
@@ -125,3 +182,4 @@ export async function POST(req: Request) {
     });
   }
 }
+
