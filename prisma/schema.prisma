@@ -105,11 +105,14 @@ model Message {
   senderId    String
   receiverId  String
   read        Boolean  @default(false)
+  imageUrl    String?   // ⭐ 新增
+  audioUrl    String?   // ⭐ 新增
 
   source      ChatSource?
 
   sender      User     @relation("SentMessages", fields: [senderId], references: [id])
   receiver    User     @relation("ReceivedMessages", fields: [receiverId], references: [id])
+
 }
 
 model Chat {

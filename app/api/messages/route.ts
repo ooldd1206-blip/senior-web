@@ -11,7 +11,6 @@ export async function GET(req: Request) {
   const otherId = searchParams.get("user");
   if (!otherId) return new Response("缺少 user 參數", { status: 400 });
 
-  // 把對方的頭貼也一起查出來
   const other = await prisma.user.findUnique({
     where: { id: otherId },
     select: {
@@ -22,7 +21,6 @@ export async function GET(req: Request) {
     },
   });
 
-  // 查出雙方對話
   const messages = await prisma.message.findMany({
     where: {
       OR: [
@@ -33,7 +31,6 @@ export async function GET(req: Request) {
     orderBy: { createdAt: "asc" },
   });
 
-  // 把「別人發給我、還沒讀的」設成已讀
   await prisma.message.updateMany({
     where: {
       receiverId: session.sub,
@@ -43,7 +40,6 @@ export async function GET(req: Request) {
     data: { read: true },
   });
 
-  // 🆕 從最後一筆有寫 source 的訊息，當作這段對話的來源
   const latestWithSource = [...messages]
     .reverse()
     .find((m) => m.source !== null);
@@ -54,7 +50,7 @@ export async function GET(req: Request) {
     messages,
     other,
     me: session.sub,
-    source, // 🆕 給 /chat 列表判斷用
+    source,
   });
 }
 
@@ -64,13 +60,16 @@ export async function POST(req: Request) {
   if (!session) return new Response("未登入", { status: 401 });
 
   const body = await req.json();
-  const { receiverId, content, source } = body;
+  const { receiverId, content, imageUrl, audioUrl, source } = body;
 
-  if (!receiverId || !content?.trim()) {
-    return new Response("缺少必要欄位", { status: 400 });
+  if (!receiverId) {
+    return new Response("缺少必要欄位 receiverId", { status: 400 });
   }
 
-  // 🆕 把前端傳來的來源字串，轉成 enum
+  if (!content?.trim() && !imageUrl && !audioUrl) {
+    return new Response("缺少訊息內容", { status: 400 });
+  }
+
   let chatSource:
     | "MATCH"
     | "ACTIVITY_CARD"
@@ -85,9 +84,11 @@ export async function POST(req: Request) {
     data: {
       senderId: session.sub,
       receiverId,
-      content: content.trim(),
-      read: false, // 新訊息預設未讀
-      source: chatSource, // 🆕 可為 undefined（就會存 null）
+      content: content?.trim() || "", // 圖片訊息可以是空字串
+      imageUrl: imageUrl || undefined,
+      audioUrl: audioUrl || undefined,
+      read: false,
+      source: chatSource,
     },
   });
 

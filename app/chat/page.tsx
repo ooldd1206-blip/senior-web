@@ -18,7 +18,6 @@ type ChatPreview = {
 
 let socket: Socket | null = null;
 
-// ⭐ 時間格式化
 function formatTime(ts?: string) {
   if (!ts) return "";
   const d = new Date(ts);
@@ -140,6 +139,7 @@ export default function ChatListPage() {
           return updated;
         }
 
+        // 新聊天室 → 重新讀一次清單
         loadChats();
         return prev;
       });
@@ -155,115 +155,99 @@ export default function ChatListPage() {
     return c.source === "ACTIVITY_CARD" || c.source === "ACTIVITY_TRIP";
   });
 
-return (
-  <main className="pt-[65px] bg-inherit flex justify-center">
-
-    {/* ⭐ 跟 NavBar 外框一致的容器 */}
-    <div className="w-full max-w-[1100px] mx-auto px-0">
-
-      {/* —— Tabs（靠近 NavBar，多縮一點距離） —— */}
-      <div className="flex items-center gap-14 mt-2 mb-8 px-6">
-
-        <button
-          onClick={() => setCurrentTab("MATCH")}
-          className={`
-            text-[34px] font-semibold px-12 py-4 rounded-[40px] transition-all
-            ${currentTab === "MATCH"
-              ? "bg-[#dedede] text-black shadow"
-              : "text-gray-600"
-            }
-          `}
-          style={{ border: "none" }}
-        >
-          配對
-        </button>
-
-        <button
-          onClick={() => setCurrentTab("ACTIVITY")}
-          className={`
-            text-[34px] font-semibold px-12 py-4 rounded-[40px] transition-all
-            ${currentTab === "ACTIVITY"
-              ? "bg-[#dedede] text-black shadow"
-              : "text-gray-600"
-            }
-          `}
-          style={{ border: "none" }}
-        >
-          活動
-        </button>
-
-      </div>
-
-      {/* —— 底線 —— */}
-      <div className="w-full h-[2px] bg-[#6a6a6a] mb-6" />
-
-      {/* —— 聊天清單 —— */}
-      <div className="w-full px-6">
-
-        {/* ⭐⭐ 沒有任何聊天室 → 顯示提示 ⭐⭐ */}
-        {filteredChats.length === 0 && (
-          <div className="text-center text-[22px] text-gray-500 py-16">
-            {currentTab === "MATCH"
-              ? "目前沒有配對對象"
-              : "目前沒有活動聯絡人"}
-          </div>
-        )}
-
-        {/* ⭐ 有聊天室才顯示列表 ⭐ */}
-        {filteredChats.map((c) => (
-          <Link
-            key={c.id}
-            href={`/chat/${c.id}`}
-            className="flex items-center justify-between py-8 border-b border-[#c7c7c7] no-underline"
+  return (
+    <main className="pt-[65px] bg-inherit flex justify-center">
+      <div className="w-full max-w-[1100px] mx-auto px-0">
+        {/* Tabs */}
+        <div className="flex items-center gap-14 mt-2 mb-8 px-6">
+          <button
+            onClick={() => setCurrentTab("MATCH")}
+            className={`
+              text-[34px] font-semibold px-12 py-4 rounded-[40px] transition-all
+              ${
+                currentTab === "MATCH"
+                  ? "bg-[#dedede] text-black shadow"
+                  : "text-gray-600"
+              }
+            `}
+            style={{ border: "none" }}
           >
+            配對
+          </button>
 
-            {/* 左側：頭貼 + 名字訊息 */}
-            <div className="flex items-center gap-10">
-              {c.avatarUrl ? (
-                <img
-                  src={c.avatarUrl}
-                  className="w-[80px] h-[80px] rounded-full object-cover"
-                />
-              ) : (
-                <div className="w-[80px] h-[80px] rounded-full bg-[#c8c8c8] flex items-center justify-center">
-                  <div className="w-[60px] h-[60px] rounded-full bg-[#b3b3b3]" />
+          <button
+            onClick={() => setCurrentTab("ACTIVITY")}
+            className={`
+              text-[34px] font-semibold px-12 py-4 rounded-[40px] transition-all
+              ${
+                currentTab === "ACTIVITY"
+                  ? "bg-[#dedede] text-black shadow"
+                  : "text-gray-600"
+              }
+            `}
+            style={{ border: "none" }}
+          >
+            活動
+          </button>
+        </div>
+
+        <div className="w-full h-[2px] bg-[#6a6a6a] mb-6" />
+
+        <div className="w-full px-6">
+          {filteredChats.length === 0 && (
+            <div className="text-center text-[22px] text-gray-500 py-16">
+              {currentTab === "MATCH"
+                ? "目前沒有配對對象"
+                : "目前沒有活動聯絡人"}
+            </div>
+          )}
+
+          {filteredChats.map((c) => (
+            <Link
+              key={c.id}
+              href={`/chat/${c.id}`}
+              className="flex items-center justify-between py-8 border-b border-[#c7c7c7] no-underline"
+            >
+              <div className="flex items-center gap-10">
+                {c.avatarUrl ? (
+                  <img
+                    src={c.avatarUrl}
+                    className="w-[80px] h-[80px] rounded-full object-cover"
+                  />
+                ) : (
+                  <div className="w-[80px] h-[80px] rounded-full bg-[#c8c8c8] flex items-center justify-center">
+                    <div className="w-[60px] h-[60px] rounded-full bg-[#b3b3b3]" />
+                  </div>
+                )}
+
+                <div>
+                  <p className="text-[26px] font-semibold text-black">
+                    {c.displayName}
+                  </p>
+                  <p className="text-[20px] text-[#8e8e8e] mt-3 truncate">
+                    {c.lastMessage}
+                  </p>
                 </div>
-              )}
-
-              <div>
-                <p className="text-[26px] font-semibold text-black">{c.displayName}</p>
-                <p className="text-[20px] text-[#8e8e8e] mt-3 truncate">
-                  {c.lastMessage}
-                </p>
               </div>
-            </div>
 
-            {/* 右側：時間 + 未讀 */}
-            <div className="flex flex-col items-end mr-2">
-              <span className="text-[16px] text-gray-600 mb-2">
-                {formatTime(c.lastTime)}
-              </span>
+              <div className="flex flex-col items-end mr-2">
+                <span className="text-[16px] text-gray-600 mb-2">
+                  {formatTime(c.lastTime)}
+                </span>
 
-              {(() => {
-                const count = c.unreadCount ?? 0;
-                return count > 0 ? (
-                  <span className="min-w-[28px] px-[6px] py-[3px] bg-red-500 text-white text-xs rounded-full text-center">
-                    {count > 9 ? "9+" : count}
-                  </span>
-                ) : null;
-              })()}
-            </div>
-
-          </Link>
-        ))}
-
+                {(() => {
+                  const count = c.unreadCount ?? 0;
+                  return count > 0 ? (
+                    <span className="min-w-[28px] px-[6px] py-[3px] bg-red-500 text-white text-xs rounded-full text-center">
+                      {count > 9 ? "9+" : count}
+                    </span>
+                  ) : null;
+                })()}
+              </div>
+            </Link>
+          ))}
+        </div>
       </div>
-
-    </div>
-
-  </main>
-);
-
-
-
+    </main>
+  );
 }
