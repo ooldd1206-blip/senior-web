@@ -295,15 +295,35 @@ export default function ProfilePage() {
             </div>
 
             {/* 頭貼網址 */}
-            <div className="modal-field">
-              <label>頭貼網址</label>
-              <input
-                value={editData.avatarUrl || ""}
-                onChange={(e) =>
-                  setEditData({ ...editData, avatarUrl: e.target.value })
-                }
-              />
-            </div>
+              <div className="modal-field">
+                <label>頭貼</label>
+
+                {/* 預覽區 */}
+                <img
+                  src={editData.avatarUrl || "/default-avatar.png"}
+                  className="w-[120px] h-[120px] rounded-full object-cover border mb-3"
+                />
+
+                {/* 檔案上傳按鈕 */}
+                <input
+                  type="file"
+                  accept="image/*"
+                  onChange={(e) => {
+                    const file = e.target.files?.[0];
+                    if (!file) return;
+
+                    const reader = new FileReader();
+                    reader.onload = () => {
+                      setEditData({
+                        ...editData,
+                        avatarUrl: reader.result as string, // Base64 preview
+                      });
+                    };
+                    reader.readAsDataURL(file);
+                  }}
+                />
+              </div>
+
 
             {/* 按鈕 */}
             <div className="modal-btns">
