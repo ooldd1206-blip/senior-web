@@ -2525,12 +2525,14 @@ body {
 .profile-modal-mask {
   position: fixed;
   inset: 0;
-  background: rgba(0,0,0,0.35);
+  background: rgba(0, 0, 0, 0.4);
   display: flex;
   justify-content: center;
   align-items: center;
-  z-index: 50;
+  padding: 20px; /* 讓內容有空間 */
+  z-index: 999;
 }
+
 
 /* ========= 彈跳視窗本體 ========= */
 .profile-modal {
