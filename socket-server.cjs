@@ -48,29 +48,30 @@ io.on("connection", (socket) => {
   });
 
   // ✨ send-message 修正（讓自己也收到）
-  socket.on("send-message", (payload) => {
-    const from = payload.from || payload.senderId;
-    const to = payload.to || payload.receiverId;
+socket.on("send-message", (payload) => {
+  const from = payload.from || payload.senderId;
+  const to = payload.to || payload.receiverId;
 
-    const msg = {
-      from,
-      to,
-      content: payload.content,
-      imageUrl: payload.imageUrl,
-      createdAt: payload.createdAt || new Date().toISOString(),
-    };
+  const msg = {
+    from,
+    to,
+    senderId: from,
+    receiverId: to,
+    content: payload.content,
+    imageUrl: payload.imageUrl,
+    createdAt: payload.createdAt || new Date().toISOString(),
+  };
 
-    const room = roomIdFor(from, to);
+  const room = roomIdFor(from, to);
 
-    console.log("📨 send-message:", msg);
+  console.log("📨 send-message:", msg);
 
-    // ⭐ 修正：讓自己也收到
-    io.to(room).emit("new-message", msg);
+  io.to(room).emit("new-message", msg);
 
-    // 更新列表
-    io.to(`user-${to}`).emit("notify-message", msg);
-    io.to(`user-${from}`).emit("notify-message", msg);
-  });
+  io.to(`user-${to}`).emit("notify-message", msg);
+  io.to(`user-${from}`).emit("notify-message", msg);
+});
+
 
   socket.on("read-chat", ({ me, other }) => {
     const room = roomIdFor(me, other);
