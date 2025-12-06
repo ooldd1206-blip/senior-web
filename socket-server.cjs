@@ -6,22 +6,28 @@ const { Server } = require("socket.io");
 const app = express();
 const httpServer = http.createServer(app);
 
-// ⭐ Render 會提供 PORT（例如 10000），不能寫死 4000
+// ⭐ Render 的 PORT
 const PORT = process.env.PORT || 4000;
 
-// ⭐ 必須加入你的 Vercel 網域才能從 Vercel 連線
+// ⭐ 開放 Render 健康檢查
+app.get("/", (req, res) => {
+  res.send("Socket server is running");
+});
+
+// ⭐ CORS（務必加上你的 Render URL）
 const io = new Server(httpServer, {
   cors: {
     origin: [
-      "https://seniorweb-five.vercel.app", // 你的 Vercel 網域（務必填正確）
+      "https://seniorweb-five.vercel.app",
       "http://localhost:3000",
       "http://localhost:3001",
+      "https://your-socket-server.onrender.com", // <<<< 你自己的 Render URL
     ],
     methods: ["GET", "POST"],
   },
 });
 
-// 兩人固定房間
+// 房間 ID
 function roomIdFor(a, b) {
   return [a, b].sort().join("_");
 }
@@ -29,48 +35,43 @@ function roomIdFor(a, b) {
 io.on("connection", (socket) => {
   console.log("✅ a user connected:", socket.id);
 
-  // 前端告訴我這個 socket 是哪位使用者
   socket.on("register-user", ({ userId }) => {
     if (!userId) return;
     socket.join(`user-${userId}`);
     console.log(`🟦 user ${userId} registered`);
   });
 
-  // 加入聊天室
   socket.on("join-chat", ({ me, other }) => {
     const room = roomIdFor(me, other);
     socket.join(room);
     console.log(`📦 ${socket.id} joined room ${room}`);
   });
 
-  // 送訊息
-// ⭐ send-message（支援 senderId / receiverId）
-socket.on("send-message", (payload) => {
-  const from = payload.from || payload.senderId;
-  const to = payload.to || payload.receiverId;
+  // ✨ send-message 修正（讓自己也收到）
+  socket.on("send-message", (payload) => {
+    const from = payload.from || payload.senderId;
+    const to = payload.to || payload.receiverId;
 
-  const msg = {
-    from,
-    to,
-    content: payload.content,
-    imageUrl: payload.imageUrl,
-    createdAt: payload.createdAt || new Date().toISOString(),
-  };
+    const msg = {
+      from,
+      to,
+      content: payload.content,
+      imageUrl: payload.imageUrl,
+      createdAt: payload.createdAt || new Date().toISOString(),
+    };
 
-  const room = roomIdFor(from, to);
+    const room = roomIdFor(from, to);
 
-  console.log("📨 send-message:", msg);
+    console.log("📨 send-message:", msg);
 
-  // 聊天室即時訊息
-  socket.to(room).emit("new-message", msg);
+    // ⭐ 修正：讓自己也收到
+    io.to(room).emit("new-message", msg);
 
-  // 更新兩人的聊天列表
-  io.to(`user-${to}`).emit("notify-message", msg);
-  io.to(`user-${from}`).emit("notify-message", msg);
-});
+    // 更新列表
+    io.to(`user-${to}`).emit("notify-message", msg);
+    io.to(`user-${from}`).emit("notify-message", msg);
+  });
 
-
-  // 已讀
   socket.on("read-chat", ({ me, other }) => {
     const room = roomIdFor(me, other);
 
@@ -83,7 +84,7 @@ socket.on("send-message", (payload) => {
   });
 });
 
-// ⭐⭐ 最重要的：Render 必須 listen(PORT)
+// ⭐ Render 確保 listen(PORT)
 httpServer.listen(PORT, () => {
   console.log("🚀 Socket server listening on port " + PORT);
 });
